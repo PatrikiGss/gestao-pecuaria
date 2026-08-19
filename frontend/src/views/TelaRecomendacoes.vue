@@ -6,69 +6,88 @@
     <div v-if="showForm" class="form-container">
       <h1>{{ editingRec ? 'Editar Recomendação' : 'Cadastro de Recomendação' }}</h1>
       <form @submit.prevent="submitForm" class="recomendação-form">
-        <!--campo para analise de solo-->
+        <!-- Seleção em cascata: propriedade filtra as análises.
+             Antes esta tela carregava TODAS as análises do usuário só para
+             preencher a lista, o que fica insustentável conforme o histórico
+             cresce. Agora só busca as da propriedade escolhida. -->
         <div class="mb-3">
-          <label for="analisesolo" class="form-label">Analise de Solo</label>
-          <select id="analisesolo" v-model="formData.analise_solo" class="form-control" required>
-            <option v-for="analise in analise_solo" :key="analise.id" :value="analise.id">
-              {{ analise.laudo }}
+          <label for="propriedade" class="form-label">Propriedade</label>
+          <select id="propriedade" v-model="propriedadeSelecionada" class="form-control" required>
+            <option disabled value="">Selecione uma propriedade</option>
+            <option v-for="propriedade in propriedades" :key="propriedade.id" :value="propriedade.id">
+              {{ propriedade.nome }}
             </option>
           </select>
+        </div>
+        <div class="mb-3">
+          <label for="analisesolo" class="form-label">Análise de Solo</label>
+          <select id="analisesolo" v-model="formData.analise_solo" class="form-control" required
+            :disabled="!propriedadeSelecionada">
+            <option disabled value="">
+              {{ propriedadeSelecionada ? 'Selecione uma análise' : 'Escolha a propriedade primeiro' }}
+            </option>
+            <option v-for="analise in analise_solo" :key="analise.id" :value="analise.id">
+              {{ analise.data }} — {{ analise.gleba_nome }} — {{ analise.laudo }}
+            </option>
+          </select>
+          <small v-if="propriedadeSelecionada && !analise_solo.length" class="text-muted">
+            Nenhuma análise cadastrada nesta propriedade.
+          </small>
         </div>
 
         <!-- Campos para os dados da recomendação -->
         <div class="mb-3">
           <label for="camada_correcao" class="form-label">Camada de Correção</label>
           <input type="text" class="form-control" id="camada_correcao" v-model="formData.camada_correcao"
-            placeholder="Informe a camada de correção">
+            placeholder="Informe a camada de correção" required >
         </div>
 
         <div class="mb-3">
           <label for="calcario_calcitico" class="form-label">Calcário Calcítico</label>
-          <input type="text" class="form-control" id="calcario_calcitico" v-model="formData.calcario_calcitico"
-            placeholder="Informe a quantidade de calcário calcítico">
+          <input type="number" step="0.01" min="0" class="form-control" id="calcario_calcitico" v-model="formData.calcario_calcitico"
+            placeholder="Informe a quantidade de calcário calcítico" required >
         </div>
 
         <div class="mb-3">
           <label for="calcario_dolomitico" class="form-label">Calcário Dolomítico</label>
-          <input type="text" class="form-control" id="calcario_dolomitico" v-model="formData.calcario_dolomitico"
-            placeholder="Informe a quantidade de calcário dolomítico">
+          <input type="number" step="0.01" min="0" class="form-control" id="calcario_dolomitico" v-model="formData.calcario_dolomitico"
+            placeholder="Informe a quantidade de calcário dolomítico" required >
         </div>
 
         <div class="mb-3">
           <label for="calcario_magnesiano" class="form-label">Calcário Magnesiano</label>
-          <input type="text" class="form-control" id="calcario_magnesiano" v-model="formData.calcario_magnesiano"
-            placeholder="Informe a quantidade de calcário magnesiano">
+          <input type="number" step="0.01" min="0" class="form-control" id="calcario_magnesiano" v-model="formData.calcario_magnesiano"
+            placeholder="Informe a quantidade de calcário magnesiano" required >
         </div>
 
         <div class="mb-3">
           <label for="gesso" class="form-label">Gesso</label>
-          <input type="text" class="form-control" id="gesso" v-model="formData.gesso"
-            placeholder="Informe a quantidade de gesso">
+          <input type="number" step="0.01" min="0" class="form-control" id="gesso" v-model="formData.gesso"
+            placeholder="Informe a quantidade de gesso" required >
         </div>
 
         <div class="mb-3">
           <label for="kcl" class="form-label">KCl</label>
-          <input type="text" class="form-control" id="kcl" v-model="formData.kcl"
-            placeholder="Informe a quantidade de KCl">
+          <input type="number" step="0.01" min="0" class="form-control" id="kcl" v-model="formData.kcl"
+            placeholder="Informe a quantidade de KCl" required >
         </div>
 
         <div class="mb-3">
           <label for="p2o5" class="form-label">P2O5</label>
-          <input type="text" class="form-control" id="p2o5" v-model="formData.p2o5"
-            placeholder="Informe a quantidade de P2O5">
+          <input type="number" step="0.01" min="0" class="form-control" id="p2o5" v-model="formData.p2o5"
+            placeholder="Informe a quantidade de P2O5" required >
         </div>
 
         <div class="mb-3">
           <label for="n" class="form-label">Nitrogênio (N)</label>
-          <input type="text" class="form-control" id="n" v-model="formData.n"
-            placeholder="Informe a quantidade de Nitrogênio (N)">
+          <input type="number" step="0.01" min="0" class="form-control" id="n" v-model="formData.n"
+            placeholder="Informe a quantidade de Nitrogênio (N)" required >
         </div>
 
         <div class="mb-3">
           <label for="s" class="form-label">Enxofre (S)</label>
-          <input type="text" class="form-control" id="s" v-model="formData.s"
-            placeholder="Informe a quantidade de Enxofre (S)">
+          <input type="number" step="0.01" min="0" class="form-control" id="s" v-model="formData.s"
+            placeholder="Informe a quantidade de Enxofre (S)" required >
         </div>
 
         <div class="button-group">
@@ -107,7 +126,8 @@
           <!-- Loop para exibir cada recomendação na tabela -->
           <div v-for="recomendacao in recomendacoes" :key="recomendacao.id" class="row recomendacao-info mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">
-              {{ getLaudoByAnaliseSoloId(recomendacao.analise_solo) }}
+              {{ recomendacao.analise_data }} — {{ recomendacao.gleba_nome }}
+              <p>{{ recomendacao.analise_laudo }}</p>
             </div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ recomendacao.camada_correcao }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ recomendacao.calcario_calcitico }}</div>
@@ -129,13 +149,23 @@
       <div v-else>
         <p>Nenhuma recomendação encontrada.</p>
       </div>
+      <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+        :total="paginacao.total" @mudar="irParaPagina" />
+
     </div>
   </div>
 </template>
 
 <script>
-import api from '@/interceptadorAxios'; 
+import api from '@/interceptadorAxios';
+import { aviso, confirmar, erro, sucesso } from '@/notificacoes';
+import PaginacaoLista from '@/components/PaginacaoLista.vue';
+import listaPaginada from '@/mixins/listaPaginada';
+import { mensagemDeErro } from '@/erros';
+import { extrairLista, PARAMS_LISTA_COMPLETA, TAMANHO_LISTA_COMPLETA } from '@/lista';
 export default {
+  components: { PaginacaoLista },
+  mixins: [listaPaginada],
   data() {
     return {
       showForm: false,
@@ -151,55 +181,56 @@ export default {
         n: '',
         s: '',
       },
-      analisesolo: [],  
+      analisesolo: [],
+      analise_solo: [],
+      propriedades: [],
+      propriedadeSelecionada: '',
       recomendacoes: [], 
       editingRec: null,  
     };
   }
   ,
+  watch: {
+    propriedadeSelecionada(nova, antiga) {
+      // Trocar de propriedade invalida a análise escolhida, que é de outra.
+      if (antiga !== '' && nova !== antiga) this.formData.analise_solo = '';
+      this.fetchAnaliseSolo();
+    },
+  },
   methods: {
+    // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
+    recarregar() {
+      this.fetchRecomendação();
+    },
     toggleForm() {
       this.showForm = !this.showForm; 
       this.clearForm(); 
     },
 
-    getLaudoByAnaliseSoloId(analisesoloId) {
-      console.log('ID da análise de solo recebido:', analisesoloId);
 
-      if (!Array.isArray(this.analise_solo) || this.analise_solo.length === 0) {
-        console.log('Array analise_solo não carregado ou vazio');
-        return 'desconhecido'; 
-      }
 
-      
-      if (!analisesoloId) {
-        console.log('ID da análise de solo não fornecido ou inválido');
-        return 'ID inválido';  
-      }
 
-      const analise = this.analise_solo.find(a => {
-        console.log(`Comparando ${String(a.id)} com ${String(analisesoloId)}`);
-        return String(a.id) === String(analisesoloId); 
-      });
-
-      
-      if (analise) {
-        console.log('Laudo encontrado:', analise.laudo);
-        return analise.laudo || 'Laudo não disponível';  
-      } else {
-        console.log('Análise de solo não encontrada para o ID:', analisesoloId);
-        return 'Análise não encontrada'; 
+    async fetchPropriedades() {
+      try {
+        const response = await api.get('/propriedades/' + PARAMS_LISTA_COMPLETA);
+        this.propriedades = extrairLista(response);
+      } catch (error) {
+        console.error('Erro ao buscar propriedades:', error);
       }
     },
-
-
-
-
+    // Busca apenas as análises da propriedade escolhida, usando o filtro
+    // '?propriedade=' da API. Sem isso a tela puxava o histórico inteiro.
     async fetchAnaliseSolo() {
+      if (!this.propriedadeSelecionada) {
+        this.analise_solo = [];
+        return;
+      }
       try {
-        const response = await api.get('/analisesolo/');
-        console.log('Dados recebidos:', response.data);
-        this.analise_solo = response.data; 
+        const response = await api.get(
+          `/analisesolo/?propriedade=${this.propriedadeSelecionada}` +
+          `&page_size=${TAMANHO_LISTA_COMPLETA}`
+        );
+        this.analise_solo = extrairLista(response);
       } catch (error) {
         console.error('Erro ao buscar análises de solo: ', error);
       }
@@ -207,8 +238,8 @@ export default {
 
     async fetchRecomendação() {
       try {
-        const response = await api.get('/recomendacoes/');
-        this.recomendacoes = response.data;
+        const response = await api.get(`/recomendacoes/?page=${this.pagina}`);
+                this.recomendacoes = this.aplicarPaginacao(response)
       } catch (error) {
         console.error('erro ao buscae recomendações: ', error);
       }
@@ -218,23 +249,23 @@ export default {
         if (this.editingRec) {
           const response = await api.put(`/recomendacoes/${this.editingRec}/`, this.formData);
           if (response.status === 200) {
-            alert('recomendação atualizada com sucesso!');
+            sucesso('recomendação atualizada com sucesso!');
           } else {
-            alert('erro ao atualizar a recomendação.')
+            erro('erro ao atualizar a recomendação.')
           }
         } else {
           const response = await api.post('/recomendacoes/', this.formData);
           if (response.status === 201) {
-            alert(' recomendação foi cadastrada com sucesso!');
+            sucesso(' recomendação foi cadastrada com sucesso!');
           } else {
-            alert('recomendação nao pode ser cadastrada.');
+            aviso('recomendação nao pode ser cadastrada.');
           }
         }
         this.fetchRecomendação();
         this.showForm = false;
       } catch (error) {
         console.error('erro ao enviuar requisição:', error);
-        alert('erro ao enviar requisauição. verifique o console')
+        erro('erro ao enviar requisauição. verifique o console')
       }
     },
 
@@ -259,24 +290,24 @@ export default {
       this.editingRec = null;
     },
     async deleteRec(id) {
-      if (confirm('tem certeza que deseja excluir esta recomendação?')) {
+      if (await confirmar('tem certeza que deseja excluir esta recomendação?')) {
         try {
           const response = await api.delete(`/recomendacoes/${id}/`);
           if (response.status === 204) { 
-            alert('Recomendação excluída com sucesso!');
+            sucesso('Recomendação excluída com sucesso!');
             this.fetchRecomendação();
           } else {
-            alert('Erro ao tentar excluir a recomendação.');
+            erro('Erro ao tentar excluir a recomendação.');
           }
         } catch (error) {
           console.error('Erro ao excluir a recomendação:', error);
-          alert('Erro ao excluir a recomendação. Verifique o console.');
+          erro(mensagemDeErro(error));
         }
       }
     }
   },
   mounted() {
-    this.fetchAnaliseSolo();
+    this.fetchPropriedades();
     this.fetchRecomendação();
   }
 };

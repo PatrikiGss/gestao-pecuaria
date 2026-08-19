@@ -23,7 +23,7 @@
         <div class="mb-3">
           <label for="telefone" class="form-label">Telefone</label>
           <input type="text" class="form-control" id="telefone" v-model="formData.telefone"
-            placeholder="Ex: (49)123112233" required />
+            placeholder="Ex: (49)123112233" required maxlength="15" />
         </div>
         <!-- Campo para o email -->
         <div class="mb-3">
@@ -40,8 +40,10 @@
         <!-- Campo para o Estado -->
         <div class="mb-3">
           <label for="estado" class="form-label">Estado</label>
-          <input type="text" class="form-control" id="estado" v-model="formData.estado" placeholder="EX: SC, SP, RS, PR"
-            required />
+          <select class="form-control" id="estado" v-model="formData.estado" required>
+            <option disabled value="">Selecione o estado</option>
+            <option v-for="uf in UFS" :key="uf" :value="uf">{{ uf }}</option>
+          </select>
         </div>
         <!-- Botões de ação -->
         <div class="button-group">
@@ -89,6 +91,9 @@
         <div v-else>
           <p>Nenhum laboratório encontrado.</p>
         </div>
+      <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+        :total="paginacao.total" @mudar="irParaPagina" />
+
       </div>
     </div>
   </div>
@@ -96,10 +101,19 @@
 
 <script>
 import api from '@/interceptadorAxios';
+import { confirmar, erro, sucesso } from '@/notificacoes';
+import PaginacaoLista from '@/components/PaginacaoLista.vue';
+import listaPaginada from '@/mixins/listaPaginada';
+import { getNomeUsuario } from '@/sessao';
+import { mensagemDeErro } from '@/erros';
+import { UFS } from '@/ufs';
 
 export default {
+  components: { PaginacaoLista },
+  mixins: [listaPaginada],
   data() {
     return {
+      UFS,
       formData: {
         endereco: '',
         nome: '',
@@ -108,36 +122,33 @@ export default {
         cidade: '',
         estado: '',
       },
-      usuarios: [],
       laboratorios: [],
       showForm: false,
       editingLab: false
     };
   },
   methods: {
+    // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
+    recarregar() {
+      this.fetchlaboratorios();
+    },
     // Alterna a exibição do formulário e reseta os dados
     toggleForm() {
       this.showForm = !this.showForm;
       this.editingLab = false;
       this.formData = {usuario:'', endereco: '', nome: '', telefone: '', email: '', cidade: '', estado: '' };
     },
-      getUsuarioNome(usuarioId) {
-      const usuario = this.usuarios.find(u => u.id === usuarioId);
-      return usuario ? usuario.nome : 'Desconhecido';
+      getUsuarioNome() {
+      // Todo registro pertence ao usuário logado (o backend filtra por ele),
+      // então o nome vem da sessão em vez de uma requisição a /usuarios/,
+      // que devolvia uma lista de um item só.
+      return getNomeUsuario();
     },
-    async fetchUsuarios() {
-    try {
-      const response = await api.get('/usuarios/'); // Atualize a URL conforme sua API
-      this.usuarios = response.data;
-    } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
-    }
-  },
     // Busca todos os laboratórios
     async fetchlaboratorios() {
       try {
-        const response = await api.get('/laboratorios/');
-        this.laboratorios = response.data;
+        const response = await api.get(`/laboratorios/?page=${this.pagina}`);
+                this.laboratorios = this.aplicarPaginacao(response)
       } catch (error) {
         console.error('Erro ao buscar laboratórios:', error);
       }
@@ -149,26 +160,26 @@ export default {
           // Atualiza o laboratório existente
           const response = await api.put(`/laboratorios/${this.formData.id}/`, this.formData);
           if (response.status === 200) {
-            alert('Laboratório atualizado com sucesso!');
+            sucesso('Laboratório atualizado com sucesso!');
             this.fetchlaboratorios();
             this.toggleForm();
           } else {
-            alert('Erro ao atualizar laboratório.');
+            erro('Erro ao atualizar laboratório.');
           }
         } else {
           // Cadastra um novo laboratório
           const response = await api.post('/laboratorios/', this.formData);
           if (response.status === 201) {
-            alert('Laboratório cadastrado com sucesso!');
+            sucesso('Laboratório cadastrado com sucesso!');
             this.laboratorios.push(response.data);
             this.toggleForm();
           } else {
-            alert('Erro ao cadastrar laboratório. Tente novamente mais tarde.');
+            erro('Erro ao cadastrar laboratório. Tente novamente mais tarde.');
           }
         }
       } catch (error) {
         console.error('Erro ao enviar requisição:', error);
-        alert('Erro ao enviar requisição. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     },
     // Inicia o modo de edição
@@ -179,25 +190,24 @@ export default {
     },
     // Deleta um laboratório
     async deleteLab(laboratorioId) {
-      if (!confirm('Tem certeza que deseja deletar este laboratório?')) {
+      if (!await confirmar('Tem certeza que deseja deletar este laboratório?')) {
         return;
       }
       try {
         const response = await api.delete(`/laboratorios/${laboratorioId}/`);
         if (response.status === 204) {
-          alert('Laboratório deletado com sucesso!');
+          sucesso('Laboratório deletado com sucesso!');
           this.laboratorios = this.laboratorios.filter(p => p.id !== laboratorioId);
         } else {
-          alert('Erro ao deletar laboratório.');
+          erro('Erro ao deletar laboratório.');
         }
       } catch (error) {
         console.error('Erro ao deletar laboratórios:', error);
-        alert('Erro ao deletar laboratórios. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     }
   },
   mounted() {
-    this.fetchUsuarios();
     this.fetchlaboratorios();
   }
 };

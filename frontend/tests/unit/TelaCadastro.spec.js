@@ -2,14 +2,19 @@ import { expect } from 'chai'
 import { shallowMount } from '@vue/test-utils'
 import TelaCadastro from '@/views/TelaCadastro.vue'
 
-// TelaCadastro usa axios diretamente, entao nao passa pelo interceptadorAxios.
-// Telas que importam '@/interceptadorAxios' caem numa dependencia circular
-// (interceptador -> router -> tela) e nao sao montaveis em teste hoje.
 describe('TelaCadastro.vue', () => {
+  // Cinco campos: nome, e-mail, senha, telefone e CPF. 'creditos' saiu do
+  // formulario porque virou somente-leitura na API, com valor fixo definido
+  // pelo servidor (CREDITOS_INICIAIS).
   it('renderiza o formulario de cadastro', () => {
     const wrapper = shallowMount(TelaCadastro)
     expect(wrapper.text()).to.include('Cadastro de Usuário')
-    expect(wrapper.findAll('input')).to.have.lengthOf(6)
+    expect(wrapper.findAll('input')).to.have.lengthOf(5)
+  })
+
+  it('nao envia creditos no cadastro', () => {
+    const wrapper = shallowMount(TelaCadastro)
+    expect(wrapper.vm.formData).to.not.have.property('creditos')
   })
 
   it('limpa o formulario ao chamar clearForm', async () => {
@@ -20,8 +25,7 @@ describe('TelaCadastro.vue', () => {
         email: 'fulano@teste.com',
         telefone: '11988887777',
         cpf: '12345678900',
-        password: 'senha12345',
-        creditos: 10
+        password: 'senha12345'
       }
     })
     expect(wrapper.vm.formData.nome).to.equal('Fulano')
@@ -29,6 +33,6 @@ describe('TelaCadastro.vue', () => {
     wrapper.vm.clearForm()
     expect(wrapper.vm.formData.nome).to.equal('')
     expect(wrapper.vm.formData.email).to.equal('')
-    expect(wrapper.vm.formData.creditos).to.equal('')
+    expect(wrapper.vm.formData.cpf).to.equal('')
   })
 })

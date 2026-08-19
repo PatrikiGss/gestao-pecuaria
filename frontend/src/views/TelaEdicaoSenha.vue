@@ -21,7 +21,9 @@
   
   <script>
   import api from '@/interceptadorAxios';
-  
+import { sucesso } from '@/notificacoes';
+  import { limparSessao } from '@/sessao';
+
   export default {
     data() {
       return {
@@ -38,11 +40,13 @@
             old_password: this.oldPassword,
             new_password: this.newPassword
           });
-          alert("Senha alterada com sucesso!"
+          sucesso("Senha alterada com sucesso!"
           +" Por favor realize o login novamente.");
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('nome_usuario');
-          this.isAuthenticated = false;
+          // Antes so o access_token era removido: o refresh_token continuava
+          // no localStorage. E 'this.isAuthenticated = false' nao fazia nada,
+          // porque essa propriedade nunca existiu no data() desta tela (foi
+          // copiada do App.vue).
+          limparSessao();
           this.$router.push('/');
           this.messageType = "success";
           this.oldPassword = "";

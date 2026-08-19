@@ -26,13 +26,13 @@
         <!-- Campo para a Latitude -->
         <div class="mb-3">
           <label for="latitude" class="form-label">Latitude</label>
-          <input type="text" class="form-control" id="latitude" v-model="formData.latitude" placeholder="ex: 12.3456789"
+          <input type="number" step="0.000001" min="-90" max="90" class="form-control" id="latitude" v-model="formData.latitude" placeholder="ex: 12.3456789"
             required />
         </div>
         <!-- Campo para a Longitude -->
         <div class="mb-3">
           <label for="longitude" class="form-label">Longitude</label>
-          <input type="text" class="form-control" id="longitude" v-model="formData.longitude"
+          <input type="number" step="0.000001" min="-180" max="180" class="form-control" id="longitude" v-model="formData.longitude"
             placeholder="ex: 98.7654321" required />
         </div>
         <!-- Campo para o Endereço -->
@@ -50,8 +50,10 @@
         <!-- Campo para o Estado -->
         <div class="mb-3">
           <label for="estado" class="form-label">Estado</label>
-          <input type="text" class="form-control" id="estado" v-model="formData.estado" placeholder="EX: SC, SP, RS, PR"
-            required />
+          <select class="form-control" id="estado" v-model="formData.estado" required>
+            <option disabled value="">Selecione o estado</option>
+            <option v-for="uf in UFS" :key="uf" :value="uf">{{ uf }}</option>
+          </select>
         </div>
         <!-- Botões de ação -->
         <div class="button-group">
@@ -96,6 +98,9 @@
         <div v-else>
           <p>Nenhuma propriedade encontrada.</p>
         </div>
+      <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+        :total="paginacao.total" @mudar="irParaPagina" />
+
       </div>
     </div>
   </div>
@@ -105,10 +110,19 @@
 
 <script>
 import api from '@/interceptadorAxios';
+import { confirmar, erro, sucesso } from '@/notificacoes';
+import PaginacaoLista from '@/components/PaginacaoLista.vue';
+import listaPaginada from '@/mixins/listaPaginada';
+import { mensagemDeErro } from '@/erros';
+import { extrairLista, PARAMS_LISTA_COMPLETA } from '@/lista';
+import { UFS } from '@/ufs';
 
 export default {
+  components: { PaginacaoLista },
+  mixins: [listaPaginada],
   data() {
     return {
+      UFS,
       formData: {
         produtor: '',
         nome: '',
@@ -125,6 +139,10 @@ export default {
     };
   },
   methods: {
+    // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
+    recarregar() {
+      this.fetchPropriedades();
+    },
     toggleForm() {
       this.showForm = !this.showForm;
       this.editingPropriedade = false;
@@ -144,16 +162,16 @@ export default {
     },
     async fetchPropriedades() {
       try {
-        const response = await api.get('/propriedades/');
-        this.propriedades = response.data;
+        const response = await api.get(`/propriedades/?page=${this.pagina}`);
+                this.propriedades = this.aplicarPaginacao(response)
       } catch (error) {
         console.error('Erro ao buscar propriedades:', error);
       }
     },
     async fetchProdutores() {
       try {
-        const response = await api.get('/produtores/');
-        this.produtores = response.data;
+        const response = await api.get('/produtores/' + PARAMS_LISTA_COMPLETA);
+        this.produtores = extrairLista(response)
       } catch (error) {
         console.error('Erro ao buscar produtores:', error);
       }
@@ -163,25 +181,25 @@ export default {
         if (this.editingPropriedade) {
           const response = await api.put(`/propriedades/${this.formData.id}/`, this.formData);
           if (response.status === 200) {
-            alert('Propriedade atualizada com sucesso!');
+            sucesso('Propriedade atualizada com sucesso!');
             this.fetchPropriedades();
             this.toggleForm();
           } else {
-            alert('Erro ao atualizar propriedade.');
+            erro('Erro ao atualizar propriedade.');
           }
         } else {
           const response = await api.post('/propriedades/', this.formData);
           if (response.status === 201) {
-            alert('Propriedade cadastrada com sucesso!');
+            sucesso('Propriedade cadastrada com sucesso!');
             this.propriedades.push(response.data);
             this.toggleForm();
           } else {
-            alert('Erro ao cadastrar propriedade. Tente novamente mais tarde.');
+            erro('Erro ao cadastrar propriedade. Tente novamente mais tarde.');
           }
         }
       } catch (error) {
         console.error('Erro ao enviar requisição:', error);
-        alert('Erro ao enviar requisição. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     },
     startEditing(propriedade) {
@@ -190,18 +208,18 @@ export default {
       this.editingPropriedade = true;
     },
     async deletePropriedade(propriedadeId) {
-      if (!confirm('Tem certeza que deseja deletar esta propriedade?')) return;
+      if (!await confirmar('Tem certeza que deseja deletar esta propriedade?')) return;
       try {
         const response = await api.delete(`/propriedades/${propriedadeId}/`);
         if (response.status === 204) {
-          alert('Propriedade deletada com sucesso!');
+          sucesso('Propriedade deletada com sucesso!');
           this.fetchPropriedades();
         } else {
-          alert('Erro ao deletar propriedade.');
+          erro('Erro ao deletar propriedade.');
         }
       } catch (error) {
         console.error('Erro ao deletar propriedade:', error);
-        alert('Erro ao deletar propriedade. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     },
   },

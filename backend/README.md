@@ -52,6 +52,10 @@ venv\Scripts\Activate.ps1
 > `venv/Scripts/` guardam o caminho absoluto do interpretador. Se precisar
 > mudar de diretório, apague e recrie.
 
+> **`python -m venv` falha com `WinError 4551`?** É o Smart App Control do
+> Windows bloqueando a cópia do `python.exe`. Existe um caminho alternativo
+> sem virtualenv, com o atalho `manage.ps1` — veja `ERROS_CONHECIDOS.md`.
+
 ### 2. Dependências
 
 ```bash
@@ -136,8 +140,8 @@ backend/
 ├── config/                 # projeto Django (settings, urls, wsgi, asgi)
 ├── apps/
 │   ├── autenticacao/       # model Usuario + JWT + perfil + troca de senha
-│   └── core/               # entidades de negócio
-├── static/                 # arquivos-fonte versionados
+│   └── core/               # produtor → propriedade → gleba → análise →
+│                           # recomendação, além de laboratório e cultura
 ├── staticfiles/            # saída do collectstatic (gerado, não versionar)
 ├── manage.py
 ├── requirements.txt
@@ -175,8 +179,11 @@ Campos extras: `nome`, `cpf` (único), `telefone` e `creditos`.
 
 CRUD completo (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) via router do DRF:
 
-`/usuarios/` · `/produtores/` · `/propriedades/` · `/laboratorios/` ·
-`/culturas/` · `/analisesolo/` · `/recomendacoes/`
+`/usuarios/` · `/produtores/` · `/propriedades/` · `/glebas/` ·
+`/laboratorios/` · `/culturas/` · `/analisesolo/` · `/recomendacoes/`
+
+`/glebas/` aceita `?propriedade=<id>` para listar apenas as glebas de uma
+propriedade — é assim que a tela de análise monta a seleção em cascata.
 
 Todos exigem o header `Authorization: Bearer <access_token>` e retornam apenas
 os registros do usuário autenticado.

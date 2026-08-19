@@ -4,6 +4,11 @@ __pycache__/
 venv/
 .venv/
 
+# Dependencias instaladas com 'pip install --target libs' (ver manage.ps1).
+# Alternativa ao venv em maquinas onde o Smart App Control bloqueia a copia
+# do python.exe. Assim como o venv, e reconstruivel a partir do requirements.
+libs/
+
 # Ambiente (use .env.example como modelo)
 .env
 

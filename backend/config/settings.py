@@ -27,7 +27,9 @@ sys.path.insert(0, APPS_DIR)
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+# Lista vazia so funciona com DEBUG=True (o Django assume localhost).
+# Em producao precisa vir preenchida pelo .env.
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 # Application definition
 DJANGO_APPS = [
@@ -38,9 +40,10 @@ DJANGO_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
-THIRD_APPS = [ 
+THIRD_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
+    'django_filters',
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -55,14 +58,15 @@ INSTALLED_APPS = PROJECT_APPS + THIRD_APPS + DJANGO_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # CorsMiddleware precisa vir antes do CommonMiddleware: se ficar depois,
+    # respostas que o CommonMiddleware encerra saem sem os cabecalhos de CORS.
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -128,7 +132,7 @@ AUTH_USER_MODEL = 'autenticacao.Usuario'
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'UTC'
 USE_I18N = True
-USE_L10N = True
+# USE_L10N foi removido no Django 5.0 - a linha nao tinha mais efeito nenhum.
 USE_TZ = True
 
 
@@ -136,9 +140,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-# Arquivos-fonte versionados no repositorio
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-# Destino do 'collectstatic' (gerado, nao versionar)
+# Destino do 'collectstatic' (gerado, nao versionar).
+#
+# Nao ha STATICFILES_DIRS: o backend e uma API pura, sem nenhum template
+# HTML. A pasta 'static/' que existia aqui guardava Bootstrap, jQuery e
+# Popper que nada referenciava - o front carrega os proprios via npm.
+# Os assets do /admin vem do proprio app do Django.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
@@ -151,19 +158,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # CORS Headers Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:7777", 
-    "http://127.0.0.1:7777",
+# CORS_ALLOW_ALL_ORIGINS = True anulava a lista abaixo e liberava qualquer
+# origem. A lista fica valendo; para adicionar dominios, use o .env.
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:7777,http://127.0.0.1:7777',
+    cast=Csv(),
+)
 
-]
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
-
-CORS_ALLOW_ALL_ORIGINS = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:7777",
-    "http://127.0.0.1:7777",
-]
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 #DRF Configuration
 REST_FRAMEWORK = {
@@ -172,6 +178,13 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    # Toda listagem passa a vir paginada. Ver config/paginacao.py.
+    'DEFAULT_PAGINATION_CLASS': 'config.paginacao.PaginacaoPadrao',
+    'PAGE_SIZE': 20,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
     ],
 }
 SIMPLE_JWT = {
@@ -183,7 +196,9 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,  # Usa a chave secreta definida anteriormente
     'AUTH_HEADER_TYPES': ('Bearer',),  # Tipo de cabeçalho de autenticação
     'TOKEN_USER_CLASS': 'autenticacao.Usuario',  # O modelo de usuário que será autenticado
-    'TOKEN_BLACKLIST_ENABLED': True,  # Habilita o uso de blacklist para tokens
+    # 'TOKEN_BLACKLIST_ENABLED' nao existe no simplejwt e era ignorado. A
+    # blacklist ja esta ativa por 'rest_framework_simplejwt.token_blacklist'
+    # estar em INSTALLED_APPS.
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=60),  # Para tokens deslizantes, caso use
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }

@@ -7,21 +7,13 @@
     <div v-if="showForm" class="form-container">
       <h1>{{ editingProdutor ? 'Editar Produtor' : 'Cadastro de Produtores' }}</h1>
       <form @submit.prevent="submitForm" class="producer-form">
-        <!-- Campo para o usuário -->
-        <!-- <div class="mb-3">
-          <label for="usuario" class="form-label">Usuário</label>
-          <select id="usuario" v-model="formData.usuario" class="form-control" required>
-            <option disabled value="">Selecione um usuário</option>
-            <option v-for="usuario in usuarios" :key="usuario.id" :value="usuario.id">
-              {{ usuario.nome }}
-            </option>
-          </select>
-        </div> -->
+        <!-- O usuário é preenchido pelo servidor (perform_create): não faz
+             sentido escolher, já que só existe o próprio. -->
         <!-- Campo para o CPF -->
         <div class="mb-3">
           <label for="cpf" class="form-label">CPF</label>
           <input type="text" class="form-control" id="cpf" v-model="formData.cpf" placeholder="Digite apenas os números"
-            required />
+            required maxlength="14" />
         </div>
         <!-- Campo para o nome -->
         <div class="mb-3">
@@ -33,7 +25,7 @@
         <div class="mb-3">
           <label for="telefone" class="form-label">Telefone</label>
           <input type="text" class="form-control" id="telefone" v-model="formData.telefone"
-            placeholder="Ex: (49)123112233" required />
+            placeholder="Ex: (49)123112233" required maxlength="15" />
         </div>
         <!-- Campo para o email -->
         <div class="mb-3">
@@ -82,14 +74,24 @@
       <div v-else>
         <p>Nenhum produtor encontrado.</p>
       </div>
+      <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+        :total="paginacao.total" @mudar="irParaPagina" />
+
     </div>
   </div>
 </template>
 
 <script>
 import api from '@/interceptadorAxios';
+import { confirmar, erro, sucesso } from '@/notificacoes';
+import PaginacaoLista from '@/components/PaginacaoLista.vue';
+import listaPaginada from '@/mixins/listaPaginada';
+import { getNomeUsuario } from '@/sessao';
+import { mensagemDeErro } from '@/erros';
 
 export default {
+  components: { PaginacaoLista },
+  mixins: [listaPaginada],
   data() {
     return {
       showForm: false,
@@ -100,68 +102,63 @@ export default {
         telefone: '',
         email: ''
       },
-      usuarios: [],
       produtores: [],
       editingProdutor: false,
     };
   },
   methods: {
+    // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
+    recarregar() {
+      this.fetchProdutores();
+    },
     toggleForm() {
       this.showForm = !this.showForm;
       this.editingProdutor = false;
       this.formData = { usuario: '', cpf: '', nome: '', telefone: '', email: '' };
     },
-    getUsuarioNome(usuarioId) {
-      const usuario = this.usuarios.find(u => u.id === usuarioId);
-      return usuario ? usuario.nome : 'Desconhecido';
+    getUsuarioNome() {
+      // Todo registro pertence ao usuário logado (o backend filtra por ele),
+      // então o nome vem da sessão em vez de uma requisição a /usuarios/,
+      // que devolvia uma lista de um item só.
+      return getNomeUsuario();
     },
     async fetchProdutores() {
       try {
-        const response = await api.get('/produtores/');
-        this.produtores = response.data;
+        const response = await api.get(`/produtores/?page=${this.pagina}`);
+                this.produtores = this.aplicarPaginacao(response)
       } catch (error) {
         console.error('Erro ao buscar produtores:', error);
       }
     },
-    async fetchUsuarios() {
-      try {
-        const response = await api.get('/usuarios/');
-        this.usuarios = response.data;
-      } catch (error) {
-        console.error('Erro ao buscar usuários:', error);
-      }
-    },
     async submitForm() {
   try {
-    const token = localStorage.getItem('token')|| sessionStorage.getItem('token');
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`  // Envia o token no cabeçalho de autorização
-      }
-    };
+    // O bloco 'config' que existia aqui lia localStorage.getItem('token'),
+    // chave que nunca foi gravada (o login grava 'access_token'), e montava
+    // 'Authorization: Bearer null'. O cabecalho correto ja e injetado pelo
+    // interceptador em toda requisicao.
     if (this.editingProdutor) {
-      const response = await api.put(`/produtores/${this.formData.id}/`, this.formData, config);
+      const response = await api.put(`/produtores/${this.formData.id}/`, this.formData);
       if (response.status === 200) {
-        alert('Produtor atualizado com sucesso!');
+        sucesso('Produtor atualizado com sucesso!');
         this.fetchProdutores();
         this.toggleForm();
       } else {
-        alert('Erro ao atualizar produtor.');
+        erro('Erro ao atualizar produtor.');
       }
     } else {
       // Cadastra um novo produtor
-      const response = await api.post('/produtores/', this.formData, config);
+      const response = await api.post('/produtores/', this.formData);
       if (response.status === 201) {
-        alert('Produtor cadastrado com sucesso!');
+        sucesso('Produtor cadastrado com sucesso!');
         this.produtores.push(response.data);
         this.toggleForm();
       } else {
-        alert('Erro ao cadastrar produtor. Tente novamente mais tarde.');
+        erro('Erro ao cadastrar produtor. Tente novamente mais tarde.');
       }
     }
   } catch (error) {
     console.error('Erro ao enviar requisição:', error);
-    alert('Erro ao enviar requisição. Verifique o console para mais detalhes.');
+    erro(mensagemDeErro(error));
   }
 },
     // Inicia o modo de edição
@@ -172,25 +169,24 @@ export default {
     },
     // Deleta um produtor
     async deleteProdutor(produtorId) {
-      if (!confirm('Tem certeza que deseja deletar este produtor?')) {
+      if (!await confirmar('Tem certeza que deseja deletar este produtor?')) {
         return;
       }
       try {
         const response = await api.delete(`/produtores/${produtorId}/`);
         if (response.status === 204) {
-          alert('Produtor deletado com sucesso!');
+          sucesso('Produtor deletado com sucesso!');
           this.produtores = this.produtores.filter(p => p.id !== produtorId);
         } else {
-          alert('Erro ao deletar produtor.');
+          erro('Erro ao deletar produtor.');
         }
       } catch (error) {
         console.error('Erro ao deletar produtor:', error);
-        alert('Erro ao deletar produtor. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     }
   },
   mounted() {
-    this.fetchUsuarios();
     this.fetchProdutores();
   }
 };

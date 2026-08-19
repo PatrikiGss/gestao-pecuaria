@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UsuarioViewSet, ProdutorViewSet, PropriedadeViewSet, LaboratorioViewSet, CulturaViewSet, AnaliseSoloViewSet, RecomendacaoViewSet
+from .views import UsuarioViewSet, ProdutorViewSet, PropriedadeViewSet, LaboratorioViewSet, CulturaViewSet, CalcarioViewSet, GlebaViewSet, AnaliseSoloViewSet, RecomendacaoViewSet
 
 
 router = DefaultRouter()
@@ -9,6 +9,8 @@ router.register(r'produtores', ProdutorViewSet)
 router.register(r'propriedades', PropriedadeViewSet)
 router.register(r'laboratorios', LaboratorioViewSet)
 router.register(r'culturas', CulturaViewSet)
+router.register(r'calcarios', CalcarioViewSet)
+router.register(r'glebas', GlebaViewSet)
 router.register(r'analisesolo', AnaliseSoloViewSet)
 router.register(r'recomendacoes', RecomendacaoViewSet)
 

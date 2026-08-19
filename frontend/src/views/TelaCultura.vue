@@ -10,7 +10,24 @@
         <div class="mb-3">
           <label for="nome" class="form-label">Nome</label>
           <input type="text" class="form-control" id="nome" v-model="formData.nome"
-            placeholder="Digite o nome da propriedade" required />
+            placeholder="Ex: Soja, Milho, Café" required />
+        </div>
+
+        <!-- V₂: alvo de saturação por bases desta cultura. Entra na fórmula
+             da calagem: NC = T × (V₂ − V₁) / 100 × (100 / PRNT). -->
+        <div class="mb-3">
+          <label for="saturacao_bases_desejada" class="form-label">
+            Saturação por bases desejada (V₂)
+          </label>
+          <input type="number" step="0.01" min="0" max="100" class="form-control"
+            id="saturacao_bases_desejada" v-model="formData.saturacao_bases_desejada"
+            placeholder="Ex: 60" />
+          <small class="text-muted">
+            Em %. Opcional — sem este valor a cultura é cadastrada normalmente,
+            mas a calagem não é calculada para ela. Consulte a fonte de
+            referência que você adota (Boletim 100 do IAC, 5ª Aproximação de MG,
+            Embrapa Cerrados).
+          </small>
         </div>
 
         <!-- Botões de ação para enviar e cancelar -->
@@ -33,13 +50,16 @@
         <!-- Verifica se há culturas cadastradas -->
         <div v-if="culturas.length">
           <div class="row font-weight-bold mb-2">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">Usuário</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">Nome</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4">V₂ desejado</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">Ação</div>
           </div>
           <div v-for="cultura in culturas" :key="cultura.id" class="row user-info mb-2">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">{{ getUsuarioNome(cultura.usuario) }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">{{ cultura.nome }}</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+              <span v-if="cultura.saturacao_bases_desejada">{{ cultura.saturacao_bases_desejada }}%</span>
+              <span v-else class="text-muted">não definido</span>
+            </div>
             <!-- Botões para editar e excluir culturas -->
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
               <button @click="startEditing(cultura)" class="btn-edit">🖊️</button>
@@ -51,6 +71,9 @@
         <div v-else>
           <p>Nenhuma cultura encontrada.</p>
         </div>
+      <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+        :total="paginacao.total" @mudar="irParaPagina" />
+
       </div>
     </div>
   </div>
@@ -59,45 +82,42 @@
 
 <script>
 import api from '@/interceptadorAxios';
+import { confirmar, erro, sucesso } from '@/notificacoes';
+import PaginacaoLista from '@/components/PaginacaoLista.vue';
+import listaPaginada from '@/mixins/listaPaginada';
+import { mensagemDeErro } from '@/erros';
 
 export default {
+  components: { PaginacaoLista },
+  mixins: [listaPaginada],
   data() {
     return {
       formData: {
         nome: '',
+        saturacao_bases_desejada: '',
       },
-      usuarios: [],
       culturas: [],
       showForm: false,
       editingcultura: false
     };
   },
   methods: {
+    // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
+    recarregar() {
+      this.fetchculturas();
+    },
     // Alterna a exibição do formulário e reseta os dados
     toggleForm() {
       this.showForm = !this.showForm;
       this.editingcultura = false;
-      this.formData = { usuario: '', nome: '' };
+      this.formData = { nome: '', saturacao_bases_desejada: '' };
     },
     // Obtém o nome do usuário a partir do ID
-    getUsuarioNome(usuarioId) {
-      const usuario = this.usuarios.find(u => u.id === usuarioId);
-      return usuario ? usuario.nome : 'Desconhecido';
-    },
-    // Busca todos os usuários
-    async fetchUsuarios() {
-      try {
-        const response = await api.get('/usuarios/');
-        this.usuarios = response.data;
-      } catch (error) {
-        console.error('Erro ao buscar usuários:', error);
-      }
-    },
     // Busca todos as culturas
     async fetchculturas() {
       try {
-        const response = await api.get('/culturas/');
-        this.culturas = response.data;
+        const response = await api.get(`/culturas/?page=${this.pagina}`);
+                this.culturas = this.aplicarPaginacao(response)
       } catch (error) {
         console.error('Erro ao buscar culturas:', error);
       }
@@ -105,36 +125,35 @@ export default {
     // Submete o formulário para cadastro ou edição
     async submitForm() {
       try {
-    const token = localStorage.getItem('token')|| sessionStorage.getItem('token');
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`  // Envia o token no cabeçalho de autorização
-      }
-    };
+    // Removido o bloco 'config' com localStorage.getItem('token') (chave
+    // inexistente) e o argumento duplicado: em 'api.put(url, dados, config)'
+    // o terceiro parametro do axios e a configuracao, entao passar
+    // 'this.formData' ali fazia o axios interpretar o corpo como config e
+    // descartar silenciosamente o 4o argumento.
         if (this.editingcultura) {
-          // Atualiza o laboratório existente
-          const response = await api.put(`/culturas/${this.formData.id}/`, this.formData, this.formData, config);
+          // Atualiza a cultura existente
+          const response = await api.put(`/culturas/${this.formData.id}/`, this.formData);
           if (response.status === 200) {
-            alert('cultura atualizado com sucesso!');
+            sucesso('cultura atualizado com sucesso!');
             this.fetchculturas();
             this.toggleForm();
           } else {
-            alert('Erro ao atualizar cultura.');
+            erro('Erro ao atualizar cultura.');
           }
         } else {
-          // Cadastra um novo laboratório
-          const response = await api.post('/culturas/', this.formData, this.formData, config);
+          // Cadastra uma nova cultura
+          const response = await api.post('/culturas/', this.formData);
           if (response.status === 201) {
-            alert('cultura cadastrada com sucesso!');
+            sucesso('cultura cadastrada com sucesso!');
             this.culturas.push(response.data);
             this.toggleForm();
           } else {
-            alert('Erro ao cadastrar cultura. Tente novamente mais tarde.');
+            erro('Erro ao cadastrar cultura. Tente novamente mais tarde.');
           }
         }
       } catch (error) {
         console.error('Erro ao enviar requisição:', error);
-        alert('Erro ao enviar requisição. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     },
     // Inicia o modo de edição
@@ -145,25 +164,24 @@ export default {
     },
     // Deleta um laboratório
     async deleteCulturas(culturaId) {
-      if (!confirm('Tem certeza que deseja deletar esta cultura?')) {
+      if (!await confirmar('Tem certeza que deseja deletar esta cultura?')) {
         return;
       }
       try {
         const response = await api.delete(`/culturas/${culturaId}/`);
         if (response.status === 204) {
-          alert('cultura deletada com sucesso!');
+          sucesso('cultura deletada com sucesso!');
           this.culturas = this.culturas.filter(p => p.id !== culturaId);
         } else {
-          alert('Erro ao deletar cultura.');
+          erro('Erro ao deletar cultura.');
         }
       } catch (error) {
         console.error('Erro ao deletar culturas:', error);
-        alert('Erro ao deletar culturas. Verifique o console para mais detalhes.');
+        erro(mensagemDeErro(error));
       }
     }
   },
   mounted() {
-    this.fetchUsuarios();
     this.fetchculturas();
   }
 };

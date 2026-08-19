@@ -61,6 +61,7 @@ src/
 │   ├── TelaUsuario.vue         /tela-usuario
 │   ├── TelaProdutor.vue        /tela-produtor
 │   ├── TelaPropriedade.vue     /tela-propriedade
+│   ├── TelaGleba.vue           /tela-gleba
 │   ├── TelaLaboratorio.vue     /tela-laboratorio
 │   ├── TelaCultura.vue         /tela-cultura
 │   ├── TelaAnaliseSolo.vue     /tela-analise-solo
@@ -90,18 +91,18 @@ segundos para mostrar ou esconder a navbar.
 
 ---
 
-## A URL da API é fixa no código
+## URL da API
 
-Os arquivos `.env`, `.env.development` e `.env.production` definem
-`VUE_APP_API_URL`, **mas nenhum arquivo do projeto lê essa variável.** A URL
-real está escrita direto no código:
+Definida por `VUE_APP_API_URL` nos arquivos `.env`:
 
-| Arquivo | URL |
+| Arquivo | Valor |
 |---|---|
-| `src/interceptadorAxios.js` | `http://localhost:8000` |
-| `src/views/TelaCadastro.vue` | `http://127.0.0.1:8000` (usa `axios` puro, sem passar pelo interceptador) |
+| `.env.development` | `http://localhost:8000` (usado por `npm run serve`) |
+| `.env.production` | precisa ser trocado pelo endereço real antes do deploy |
+| `.env` | fallback, se nenhum dos dois definir |
 
-Para apontar para outro backend, edite esses dois arquivos.
+Todas as telas usam a mesma instância `src/interceptadorAxios.js`, que lê essa
+variável. Não há URL escrita no código.
 
 ---
 
@@ -111,7 +112,9 @@ Para apontar para outro backend, edite esses dois arquivos.
 npm run test:unit
 ```
 
-A cobertura hoje é mínima (`tests/unit/TelaCadastro.spec.js`). Telas que
-importam `@/interceptadorAxios` **não são montáveis em teste** por causa de uma
-dependência circular (`tela → interceptador → router → tela`), que faz o import
-falhar com `Cannot access '__WEBPACK_DEFAULT_EXPORT__' before initialization`.
+Cobertura: `sessao.spec.js`, `TelaLogin.spec.js` e `TelaCadastro.spec.js`.
+
+O teste de `TelaLogin` existe como regressão: enquanto o interceptador
+importava o router, havia o ciclo `tela → interceptador → router → tela` e
+nenhuma tela que usasse a API podia ser montada em teste. O `sessao.js` foi
+extraído justamente para quebrar esse ciclo.

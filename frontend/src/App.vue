@@ -10,9 +10,11 @@
             <li><router-link class="dropdown-item" to="/">Home</router-link></li>
             <li><router-link class="dropdown-item" to="/tela-usuario">Usuário</router-link></li>
             <li><router-link class="dropdown-item" to="/tela-produtor">Produtor</router-link></li>
-            <li><router-link class="dropdown-item" to="/tela-Propriedade">Propriedade</router-link></li>
-            <li><router-link class="dropdown-item" to="/tela-Laboratorio">Laboratório</router-link></li>
+            <li><router-link class="dropdown-item" to="/tela-propriedade">Propriedade</router-link></li>
+            <li><router-link class="dropdown-item" to="/tela-gleba">Glebas</router-link></li>
+            <li><router-link class="dropdown-item" to="/tela-laboratorio">Laboratório</router-link></li>
             <li><router-link class="dropdown-item" to="/tela-cultura">Cultura</router-link></li>
+            <li><router-link class="dropdown-item" to="/tela-calcario">Calcários</router-link></li>
             <li><router-link class="dropdown-item" to="/tela-analise-solo">Análise Solo</router-link></li>
             <li><router-link class="dropdown-item" to="/tela-recomendacoes">Recomendação</router-link></li>
           </ul>
@@ -32,45 +34,83 @@
       </div>
     </nav>
     <router-view />
+
+    <!-- Substituem alert() e confirm() do navegador, que travavam a aba
+         inteira e não aceitavam estilo. -->
+    <AvisosFlutuantes />
+    <ConfirmacaoDialogo />
   </div>
 </template>
 
 <script>
+import api from '@/interceptadorAxios';
+import AvisosFlutuantes from '@/components/AvisosFlutuantes.vue';
+import ConfirmacaoDialogo from '@/components/ConfirmacaoDialogo.vue';
+import { confirmar, erro } from '@/notificacoes';
+import { sessao, getRefreshToken, limparSessao } from '@/sessao';
+
 export default {
   name: 'App',
+  components: { AvisosFlutuantes, ConfirmacaoDialogo },
   data() {
     return {
       currentName: '',
-      nome: 'Usuário',
-      isAuthenticated: false
+      // Estado reativo compartilhado. Substitui o setInterval de 3 segundos
+      // que perguntava a cada tique se o token ainda existia: agora quem
+      // altera a sessão notifica, e a navbar reage na hora.
+      sessao,
     };
+  },
+  computed: {
+    isAuthenticated() {
+      return this.sessao.autenticado;
+    },
+    nome() {
+      return this.sessao.nome;
+    },
   },
   watch: {
     $route(to) {
-      this.currentName = to.name;
+      // Usa o titulo declarado na rota; o 'name' era usado direto e aparecia
+      // na navbar como 'analiseSolo' e 'recomendação'.
+      this.currentName = to.meta.titulo || '';
     }
   },
   mounted() {
-    this.checkAuthentication();
-    this.nome = localStorage.getItem('nome_usuario') || 'Usuário';
-    this.authCheckInterval = setInterval(this.checkAuthentication, 3000);
+    // O interceptadorAxios avisa por evento quando a sessão cai (refresh
+    // recusado). Ele não importa o router para não recriar a dependência
+    // circular, então a navegação acontece aqui.
+    this._aoEncerrarSessao = () => {
+      if (this.$route.name !== 'home') this.$router.push('/');
+    };
+    window.addEventListener('sessao-encerrada', this._aoEncerrarSessao);
   },
   beforeUnmount() {
-    clearInterval(this.authCheckInterval);
+    window.removeEventListener('sessao-encerrada', this._aoEncerrarSessao);
   },
   methods: {
-    checkAuthentication() {
-      this.isAuthenticated = !!localStorage.getItem('access_token');  
-    },
-    confirmLogout() {
-      if (confirm("Você deseja encerrar a sessão?")) {
-        this.logoutUsuario(); 
+    async confirmLogout() {
+      if (await confirmar('Você deseja encerrar a sessão?', { confirmarTexto: 'Sair' })) {
+        this.logoutUsuario();
       }
     },
-    logoutUsuario() {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('nome_usuario');
-      this.isAuthenticated = false;
+    async logoutUsuario() {
+      // O logout apenas apagava o access_token do localStorage: o
+      // refresh_token continuava salvo e valido por 1 dia, e o endpoint de
+      // blacklist do backend nunca era chamado. Agora o token e invalidado
+      // no servidor antes de limpar a sessao local.
+      const refresh = getRefreshToken();
+      if (refresh) {
+        try {
+          await api.post('/autenticacao/logout/', { refresh });
+        } catch (falha) {
+          // Token ja expirado ou API fora do ar: a sessao local e limpa
+          // de qualquer forma, para o logout nunca falhar para o usuário.
+          console.warn('Não foi possível invalidar o token no servidor:', falha);
+          erro('A sessão foi encerrada aqui, mas o servidor não confirmou.');
+        }
+      }
+      limparSessao();
       this.$router.push('/');
     },
     changepassword(){

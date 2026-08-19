@@ -1,9 +1,9 @@
 <template>
   <div class="login">
     <h1>Login</h1>
-    <input class="input" v-model="email" type="text" placeholder="email">
+    <input class="input" v-model="email" type="text" placeholder="email" required >
     <br>
-    <input class="input" v-model="password" :type="passwordType" placeholder="Password">
+    <input class="input" v-model="password" :type="passwordType" placeholder="Password" required >
     <span class="toggle-password" @click="togglePasswordVisibility">
       <i :class="passwordType === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
     </span>
@@ -20,15 +20,17 @@
 
 
 <script>
-import api from '@/interceptadorAxios'; 
+import api from '@/interceptadorAxios';
+import { sucesso } from '@/notificacoes';
+import { salvarSessao } from '@/sessao';
 
 export default {
   data() {
     return {
       email: '',
       password: '',
-      passwordType: 'password', 
-      errorMessage: '', 
+      passwordType: 'password',
+      errorMessage: '',
     };
   },
   methods: {
@@ -41,28 +43,24 @@ export default {
         });
 
         if (response.status === 200 && response.data.access && response.data.refresh) {
-          const accessToken = response.data.access;
-          const refreshToken = response.data.refresh;
-          alert("login realizado com sucesso!");
-
-          // Armazena os tokens no localStorage
-          localStorage.setItem('access_token', accessToken);
-          localStorage.setItem('refresh_token', refreshToken);
+          sucesso("login realizado com sucesso!");
+          salvarSessao({ access: response.data.access, refresh: response.data.refresh });
 
           const nomeUsuario = await this.obterNomeUsuario();
-          localStorage.setItem('nome_usuario', nomeUsuario);
+          salvarSessao({ nome: nomeUsuario });
 
-          
+          // Havia 'router.push' seguido de 'window.location.href' para o
+          // mesmo destino: o segundo recarregava a pagina inteira e anulava
+          // a navegacao da SPA.
           this.$router.push('/tela-usuario');
-          window.location.href = '/tela-usuario';
         } else {
           this.errorMessage = 'Falha ao obter os tokens de autenticação.';
-          window.location.href = '/';
         }
       } catch (error) {
         console.error('Erro ao realizar login:', error);
+        // O 'window.location.href' que existia aqui recarregava a pagina e
+        // apagava esta mensagem antes de o usuario conseguir le-la.
         this.errorMessage = 'Erro no login. Verifique suas credenciais.';
-        window.location.href = '/';
       }
     },
 

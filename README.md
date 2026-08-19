@@ -25,7 +25,6 @@ gestao-pecuaria/
 │   │   ├── autenticacao/     # usuário customizado (login por e-mail) + JWT
 │   │   └── core/             # produtor, propriedade, laboratório, cultura,
 │   │                         # análise de solo, recomendação
-│   ├── static/
 │   ├── manage.py
 │   └── requirements.txt
 │
