@@ -90,15 +90,24 @@ export default {
 <style scoped>
 /* Apenas o que é específico desta tela.
    O padrão comum vive em src/estilos/base.css. */
+/* Saiu de 'position: absolute' com centralização por transform.
+   Fora do fluxo, o cartão não empurrava nada: com o rodapé no fim da página,
+   ele passava por cima dele em janela baixa. Agora flui normalmente e a
+   centralização é feita por margem.
+
+   O 'position: relative' fica porque o ícone de olho da senha é absoluto e
+   se ancorava neste cartão; sem ele, passaria a se ancorar na janela. */
 .login {
-  background-color: rgba(0, 0, 0, 0.9);  
-  position: absolute; 
-  top: 50%; 
-  left: 50%;  
-  transform: translate(-50%, -50%);  
-  padding: 80px;  
-  border-radius: 20px;  
+  background-color: rgba(0, 0, 0, 0.9);
+  position: relative;
+  /* O desconto de 32px deixa uma folga lateral no celular; sem ele o cartão
+     encosta nas duas bordas da tela. A centralização em si vem do
+     'margin: auto' aplicado em base.css — ver o bloco FUNDO. */
+  width: min(420px, calc(100% - 32px));
+  padding: 48px 40px;
+  border-radius: 20px;
   color: white;
+  box-sizing: border-box;
 }
 
 .input {

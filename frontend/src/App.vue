@@ -1,5 +1,9 @@
 <template>
-  <div id="app">
+  <!-- Classe, e não id="app": o index.html já tem um <div id="app">, que é o
+       container onde o Vue monta. Repetir o id aqui criava dois elementos com
+       o mesmo id — HTML inválido — e fazia toda regra '#app' valer para os
+       dois, o que pintava a camada de fundo duas vezes. -->
+  <div class="app-raiz" :class="{ 'fundo-destaque': fundoEmDestaque }">
     <nav v-if="isAuthenticated" class="nav-bar">
       <div class="nav-container">
         <div class="dropdown">
@@ -33,7 +37,21 @@
         </div>
       </div>
     </nav>
-    <router-view />
+    <!-- O miolo cresce para empurrar o rodapé até o fim da janela em páginas
+         curtas. Ver a seção 'rodapé' em src/estilos/base.css. -->
+    <main class="conteudo">
+      <router-view />
+    </main>
+
+    <!-- Aparece também nas telas públicas: a navbar some sem sessão, o
+         rodapé não deve sumir junto. -->
+    <footer class="rodape">
+      <span>© {{ ano }} Projeto de pesquisa: AORUS. IFSC Câmpus Lages. Todos os direitos reservados.</span>
+      <span>
+        Desenvolvido por:
+        <a :href="`mailto:${email}`">{{ email }}</a>
+      </span>
+    </footer>
 
     <!-- Substituem alert() e confirm() do navegador, que travavam a aba
          inteira e não aceitavam estilo. -->
@@ -59,6 +77,10 @@ export default {
       // que perguntava a cada tique se o token ainda existia: agora quem
       // altera a sessão notifica, e a navbar reage na hora.
       sessao,
+      // Ano em que o projeto foi desenvolvido. Fixo de propósito: o aviso de
+      // direitos se refere à autoria da obra, não à data de hoje.
+      ano: 2024,
+      email: 'patrikigss321@gmail.com',
     };
   },
   computed: {
@@ -68,13 +90,25 @@ export default {
     nome() {
       return this.sessao.nome;
     },
+    // Telas marcadas com 'fundoDestaque' mostram a imagem quase inteira, com
+    // véu escuro. Só o login usa: é a única tela cujo conteúdo é um cartão
+    // escuro com texto branco. Nas demais o título fica FORA da caixa, sobre
+    // o fundo, e precisa do véu claro para continuar legível.
+    fundoEmDestaque() {
+      return !!this.$route.meta.fundoDestaque;
+    },
   },
   watch: {
-    $route(to) {
-      // Usa o titulo declarado na rota; o 'name' era usado direto e aparecia
-      // na navbar como 'analiseSolo' e 'recomendação'.
-      this.currentName = to.meta.titulo || '';
-    }
+    // 'immediate' porque sem ele o título da navbar ficava vazio até a
+    // primeira navegação: recarregar a página deixava a barra sem rótulo.
+    $route: {
+      immediate: true,
+      handler(to) {
+        // Usa o titulo declarado na rota; o 'name' era usado direto e aparecia
+        // na navbar como 'analiseSolo' e 'recomendação'.
+        this.currentName = to.meta.titulo || '';
+      },
+    },
   },
   mounted() {
     // O interceptadorAxios avisa por evento quando a sessão cai (refresh
@@ -121,7 +155,7 @@ export default {
 </script>
 
 <style>
-#app {
+.app-raiz {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -129,9 +163,13 @@ export default {
   color: #2c3e50;
 }
 
-/* Barra de navegação */
+/* Barra de navegação.
+   Mesma cor do rodapé: as duas barras emolduram o conteúdo, então dividem o
+   token --cor-barra. O cinza-marrom que estava aqui antes não vinha de token
+   nenhum e era o único elemento fora da paleta. */
 .nav-bar {
-  background-color: rgb(107, 99, 99); /* Cor escura para a barra */
+  background-color: var(--cor-barra);
+  border-bottom: 3px solid var(--cor-primaria);
   width: 100%;
   padding: 10px 0; /* Espaçamento na vertical */
   display: flex;
@@ -145,16 +183,24 @@ export default {
   align-items: center;
 }
 
-/* Botão de navegação (dropdown) */
-.nav-button {
-  background-color: black;
-  color: white;
+/* Botão de navegação (dropdown).
+   Usa o verde primário, o mesmo dos botões de ação das telas, para o menu se
+   ler como affordance em vez de mancha.
+
+   O seletor precisa de '.nav-bar' na frente: sozinho, '.nav-button' empata em
+   especificidade com o '.btn' do Bootstrap, que é injetado depois e vencia o
+   desempate por ordem. O 'background-color: black' que estava aqui antes nunca
+   chegou a valer por causa disso. */
+.nav-bar .nav-button {
+  background-color: var(--cor-primaria);
+  color: #fff;
   border: none;
   margin-left: 20px;
 }
 
-.nav-button:hover {
-  background-color: #666;
+.nav-bar .nav-button:hover {
+  background-color: var(--cor-primaria-hover);
+  color: #fff;
 }
 
 /* Container para o nome do usuário e botão de logout */
@@ -166,28 +212,39 @@ export default {
 /* Nome do usuário */
 .user-name {
   margin-right: 10px;
-  color: white; /* Cor branca para o nome do usuário */
+  color: var(--cor-barra-texto);
   font-weight: bold;
 }
 
-/* Botão de logout */
-.logout-button {
+/* Botão de logout.
+   O 'color: black' que havia aqui pintava a setinha do dropdown de preto —
+   invisível sobre a barra escura. Passa a acompanhar o texto da barra. */
+.nav-bar .logout-button {
   background-color: transparent;
-  color: black !important; /* Força a cor preta no botão de logout */
+  color: var(--cor-barra-texto) !important;
   border: none;
   padding: 5px 10px;
   margin-right: 20px;
+  border-radius: var(--raio-pequeno);
 }
 
-.logout-button:hover {
-  background-color: #ff4d4d;
-  color: rgb(32, 22, 22) !important; /* Muda a cor ao passar o mouse */
+/* O vermelho de aviso agora sai da paleta (--cor-perigo), em vez de um
+   #ff4d4d avulso que brigava com o verde da barra. Mesmo motivo do botão
+   acima para o seletor levar '.nav-bar': sem ele, '.btn:hover' do Bootstrap
+   empata e ganha por ordem. */
+.nav-bar .logout-button:hover {
+  background-color: var(--cor-perigo);
+  color: #fff !important;
+}
+
+.nav-bar .logout-button:hover .user-name {
+  color: #fff;
 }
 
 /* Nome da rota atual */
 .current-name {
   margin-left: 10px;
-  color: white;
+  color: var(--cor-barra-texto);
   font-weight: bold;
 }
 

@@ -24,6 +24,8 @@
      .btn-edit          ícone de edição na linha
      .btn-delete        ícone de exclusão na linha
      .btn-detalhe       ícone de detalhe na linha
+     .conteudo          área entre a navbar e o rodapé
+     .rodape            rodapé fixo no fim da página
    ========================================================================= */
 
 :root {
@@ -42,10 +44,122 @@
   --cor-borda: #adb5bd;
   --cor-borda-suave: #dee2e6;
 
+  /* Barras de cima e de baixo (navbar e rodapé). Mesma família do verde
+     primário, dois tons abaixo. O nome é 'barra' e não 'rodapé' porque as
+     duas compartilham a cor de propósito: emolduram o conteúdo. */
+  --cor-barra: #14401f;
+  --cor-barra-texto: #e4efe6;
+  --cor-barra-link-hover: #9fd6ac;
+
   --raio: 10px;
   --raio-pequeno: 4px;
   --espaco: 20px;
   --sombra: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  /* Fundo fotográfico. Veja o bloco FUNDO logo abaixo. */
+  --cor-solo-base: #52402c;
+  --foto-fundo: url("C:\Users\patri\OneDrive\Desktop\projects\gestão_pecuaria\gestao-pecuaria\backend\background_desfocado.jpeg");
+}
+
+/* =========================================================================
+   FUNDO
+   =========================================================================
+
+   Uma camada de solo atrás de todas as telas. Ela fica no ::before da raiz do App.vue,
+   com 'position: fixed', e NAO em 'background-attachment: fixed' — o segundo
+   repinta a cada rolagem e é quebrado no Safari do iOS.
+
+   A transparência vai num VÉU SOBRE a imagem, nunca em opacidade nas caixas
+   de conteúdo. As caixas continuam opacas, então o dado nunca disputa espaço
+   com a textura. Isso importa mais do que parece: o problema de ler texto
+   sobre foto não é o nível de contraste (uma caixa a 85% sobre solo escuro
+   ainda dá 7,5:1, que passa em AAA) e sim a VARIÂNCIA — o grão do solo
+   atravessa o texto e cansa a leitura. Por isso a imagem precisa entrar
+   desfocada, e por isso as caixas ficam opacas.
+
+   SÃO DUAS VARIANTES DA MESMA FOTO, e a razão é a diferença entre as telas:
+
+     src/assets/solo.webp         telas internas — DESFOCADA (900px, ~6 KB)
+     src/assets/solo-nitido.webp  login          — nítida    (678px, ~48 KB)
+
+   Nas telas internas o título fica DIRETO sobre o fundo, então a imagem entra
+   desfocada: o desfoque apaga o grão do solo e as letras dos hexágonos (N, P,
+   K...), que são justamente o que atrapalha ler texto por cima. No login não
+   há texto sobre o fundo — o cartão é opaco — então a foto aparece inteira.
+
+   Bônus do desfoque: como ele destrói detalhe, a imagem comprime muito melhor
+   e cabe em 6 KB. Isso conta, porque o plugin de PWA precacheia o build.
+
+   As imagens ficam em src/assets/ e NÃO em public/. Este arquivo passa pelo
+   webpack, e ali um url('/img/...') é tratado como caminho de módulo, não
+   como URL — o build quebra com 'Cannot find module'. Em src/assets/ o
+   caminho é relativo, o webpack resolve, e as imagens ainda ganham hash de
+   cache no nome.
+
+   As duas são geradas por 'scripts/gerar-fundo.py', a partir de uma foto de
+   origem. Para trocar a imagem de fundo, rode:
+
+       python scripts/gerar-fundo.py caminho/da/foto.jpg
+
+   Não aponte o CSS direto para um JPEG grande: além do peso, a variante das
+   telas internas precisa do desfoque.
+
+   Se um dia usar uma foto nítida nas telas internas, suba o véu para 0.88.
+   ========================================================================= */
+
+html {
+  background-color: var(--cor-solo-base);
+}
+
+/* O Bootstrap pinta o body de branco. Sem esta linha, esse branco cobre a
+   camada de fundo, porque o fundo do body é propagado para o canvas. */
+body {
+  background-color: transparent;
+}
+
+.app-raiz {
+  /* Véu das telas internas: claro e forte, porque aqui há tabela densa. */
+  --veu: rgba(255, 255, 255, 0.82);
+}
+
+/* Login: o cartão já é escuro (rgba(0,0,0,0.9)) e a tela é esparsa, então a
+   foto entra nítida e o véu apenas assenta o contraste. É a tela que mais
+   ganha com o fundo — e a única em que o texto sobre a foto é branco, dentro
+   do cartão. */
+.app-raiz.fundo-destaque {
+  --veu: rgba(0, 0, 0, 0.30);
+  --foto-fundo: url("C:\Users\patri\OneDrive\Desktop\projects\gestão_pecuaria\gestao-pecuaria\backend\tela_login_1080p.webp");
+}
+
+/* O cartão do login se centraliza na área livre entre a navbar e o rodapé.
+   'margin: auto' num item flex centraliza nos dois eixos — e centralizar pelo
+   fluxo, em vez de 'position: absolute', é o que impede o cartão de passar por
+   cima do rodapé em janela baixa. */
+.app-raiz.fundo-destaque .conteudo {
+  display: flex;
+  padding: 24px 0;
+}
+
+.app-raiz.fundo-destaque .conteudo > * {
+  margin: auto;
+}
+
+.app-raiz::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--cor-solo-base);
+  background-image:
+    linear-gradient(var(--veu), var(--veu)),
+    var(--foto-fundo),
+    radial-gradient(ellipse 70% 55% at 18% 22%, #7d5c3b 0%, transparent 62%),
+    radial-gradient(ellipse 60% 50% at 80% 28%, #382717 0%, transparent 64%),
+    radial-gradient(ellipse 85% 60% at 62% 84%, #6b4c30 0%, transparent 66%),
+    radial-gradient(ellipse 55% 45% at 6% 90%, #2f2013 0%, transparent 62%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* ------------------------------------------------------------------ caixas */
@@ -234,12 +348,62 @@
   font-size: 0.9rem;
 }
 
+/* ----------------------------------------------------------------- rodapé */
+
+/* O rodapé precisa parar no fim da JANELA quando a página é curta, e no fim
+   do CONTEÚDO quando ela é longa. Uma raiz em coluna com o miolo em 'flex: 1'
+   resolve os dois casos sem 'position: fixed', que taparia a última linha
+   das listagens. */
+.app-raiz {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo {
+  flex: 1;
+}
+
+.rodape {
+  /* Faixa própria: sem ela o texto do rodapé cairia direto sobre a foto,
+     que é justamente o caso que o resto deste arquivo evita.
+
+     A cor sai da paleta do site: é a mesma família do verde primário usado
+     nos botões, um tom abaixo. O azul-ardósia que estava aqui antes não
+     pertencia a nenhum token e destoava do resto. */
+  background-color: var(--cor-barra);
+  color: var(--cor-barra-texto);
+  border-top: 3px solid var(--cor-primaria);
+  font-size: 0.82rem;
+  padding: 14px var(--espaco);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  text-align: left;
+}
+
+.rodape a {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.rodape a:hover {
+  color: var(--cor-barra-link-hover);
+}
+
 /* ------------------------------------------------------------- responsivo */
 
 @media (max-width: 768px) {
   .lista-linha,
   .lista-cabecalho {
     flex-wrap: wrap;
+  }
+
+  .rodape {
+    justify-content: center;
+    text-align: center;
   }
 
   .form-container,

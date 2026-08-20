@@ -21,7 +21,9 @@ const routes = [
     path: '/',
     name: 'home',
     component: TelaLogin,
-    meta: { titulo: 'Login', publica: true }
+    // 'fundoDestaque' deixa a imagem de fundo quase sem véu. Só aqui: o
+    // cartão de login é escuro e a tela é esparsa. Ver base.css, bloco FUNDO.
+    meta: { titulo: 'Login', publica: true, fundoDestaque: true }
   },
   {
     path: '/tela-usuario',
