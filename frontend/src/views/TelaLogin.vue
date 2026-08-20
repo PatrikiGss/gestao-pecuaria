@@ -1,13 +1,12 @@
 <template>
   <div class="login">
-    <h1>Login</h1>
+    <h1 class="titulo-tela">Login</h1>
     <input class="input" v-model="email" type="text" placeholder="email" required >
     <br>
     <input class="input" v-model="password" :type="passwordType" placeholder="Password" required >
     <span class="toggle-password" @click="togglePasswordVisibility">
       <i :class="passwordType === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
     </span>
-    <br>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <div class="cadastro">
       <button class="btn-cadastro" @click="redirectToCadastro">cadastre-se</button>
@@ -89,6 +88,8 @@ export default {
 </script>
 
 <style scoped>
+/* Apenas o que é específico desta tela.
+   O padrão comum vive em src/estilos/base.css. */
 .login {
   background-color: rgba(0, 0, 0, 0.9);  
   position: absolute; 
@@ -97,8 +98,9 @@ export default {
   transform: translate(-50%, -50%);  
   padding: 80px;  
   border-radius: 20px;  
-  color: white;  
+  color: white;
 }
+
 .input {
   padding: 15px;
   border: none;
@@ -115,15 +117,16 @@ export default {
   cursor: pointer;
 }
 
-.login input[type="text"],
-.login input[type="password"] {
+.login input[type="text"], .login input[type="password"] {
   width: calc(100% - 40px);
   padding-right: 40px;
 }
+
 .envio {
   text-align: left;
   margin-bottom: 20px;
 }
+
 .btn-envio {
   background-color: #237837;
   border: none;
@@ -133,10 +136,12 @@ export default {
   font-size: 15px;
   cursor: pointer;
 }
+
 .cadastro {
   text-align: left;
   margin-bottom: 20px;
 }
+
 .btn-cadastro {
   background-color: transparent;
   color: white;
@@ -145,9 +150,11 @@ export default {
   font-size: 15px;
   cursor: pointer;
 }
+
 .btn-cadastro:hover {
   color: #ddd;
 }
+
 .btn-envio:hover {
   background-color: #218838;
 }

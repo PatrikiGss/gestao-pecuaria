@@ -1,12 +1,11 @@
 <template>
   <div class="container-fluid">
-    <h1></h1>
     <!-- Título da Lista de Propriedades -->
-    <h1 v-if="!showForm" class="mt-4"><br>Lista de Propriedades</h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Propriedades</h1>
     <!-- Formulário de cadastro/edição de propriedades -->
     <div v-if="showForm" class="form-container">
-      <h1>{{ editingPropriedade ? 'Editar Propriedade' : 'Cadastro de Propriedade' }}</h1>
-      <form @submit.prevent="submitForm" class="propriedade-form">
+      <h1 class="titulo-tela">{{ editingPropriedade ? 'Editar Propriedade' : 'Cadastro de Propriedade' }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <!-- Campo para o Produtor -->
         <div class="mb-3">
           <label for="produtor" class="form-label">Produtor</label>
@@ -63,15 +62,14 @@
       </form>
     </div>
     <!-- Lista de propriedades -->
-    <div v-if="!showForm" class="propriedade-list mt-5">
+    <div v-if="!showForm" class="lista-container mt-5">
       <!-- Botão para abrir o formulário de cadastro, sempre visível -->
-      <div class="container-fluidd">
-        <br>
+      <div>
         <div class="button-container">
           <button @click="toggleForm" class="btn-submit">Cadastrar nova Propriedade</button>
         </div>
         <div v-if="propriedades.length">
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Produtor</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Nome</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Endereço</div>
@@ -81,7 +79,7 @@
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Estado</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Ação</div>
           </div>
-          <div v-for="propriedade in propriedades" :key="propriedade.id" class="row user-info mb-2">
+          <div v-for="propriedade in propriedades" :key="propriedade.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ getProdutorNome(propriedade.produtor) }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ propriedade.nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ propriedade.endereco }}</div>
@@ -229,123 +227,3 @@ export default {
   },
 };
 </script>
-
-
-<style scoped>
-.container-fluidd {
-  width: 100%;
-  padding: 0 15px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-}
-
-.form-container {
-  width: 100%;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.propriedade-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.form-group {
-  flex: 1 1 150px;
-  min-width: 150px;
-}
-
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-.user-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-.user-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-</style>

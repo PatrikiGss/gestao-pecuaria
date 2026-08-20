@@ -20,8 +20,13 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     permission_classes = [IsAuthenticated]
 
+    ordering = ['id']
+
     def get_queryset(self):
-        return Usuario.objects.filter(id=self.request.user.id)
+        # order_by explicito: paginacao sobre queryset sem ordem tem resultado
+        # imprevisivel entre paginas, e o DRF avisa disso. Foi a unica listagem
+        # que ficou sem ordenacao quando a paginacao global entrou.
+        return Usuario.objects.filter(id=self.request.user.id).order_by('id')
 
 
 class ProdutorViewSet(viewsets.ModelViewSet):

@@ -1,8 +1,8 @@
 <template>
     <div class="container-fluid">
-      <h1>Cadastro de Usuário</h1>
+      <h1 class="titulo-tela">Cadastro de Usuário</h1>
       <div class="form-container">
-        <form @submit.prevent="submitForm" class="user-form">
+        <form @submit.prevent="submitForm" class="tela-form">
           <!-- Campo para o nome -->
           <div class="mb-3">
             <label for="nome" class="form-label">Nome</label>
@@ -33,8 +33,7 @@
 
           <!-- Botões para enviar ou voltar -->
           <div class="button-group">
-            <button type="button" class="btn-submit" @click="goBack">Voltar</button>
-            <span style="margin-right: 10px;"></span> 
+            <button type="button" class="btn-back" @click="goBack">Voltar</button>
             <button type="submit" class="btn-submit">Enviar</button> 
           </div>
         </form>
@@ -92,51 +91,3 @@ import { mensagemDeErro } from '@/erros';
     }
   };
   </script>
-  
-  <style scoped>
-  .container-fluid {
-    width: 100%;
-    padding: 0 15px;
-  }
-  
-  .form-container {
-    width: 100%;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: whitesmoke;
-    border: 2px solid grey;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .mb-3 {
-    margin-bottom: 1rem;
-  }
-  
-  .form-label {
-    text-align: left;
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  
-  .btn-submit {
-    padding: 8px 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    background-color: #237837;
-    color: white;
-  }
-  
-  .btn-submit:hover {
-    background-color: #218838;
-  }
-  
-  .button-group {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
-  </style>
-  

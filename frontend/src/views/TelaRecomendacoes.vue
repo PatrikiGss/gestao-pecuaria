@@ -1,11 +1,9 @@
 <template>
   <div class="container-fluid">
-    <h1></h1>
-    <h1 v-if="!showForm"><br>Lista de Recomendações </h1>
-    <h1 v-if="!showForm"><br></h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Recomendações</h1>
     <div v-if="showForm" class="form-container">
-      <h1>{{ editingRec ? 'Editar Recomendação' : 'Cadastro de Recomendação' }}</h1>
-      <form @submit.prevent="submitForm" class="recomendação-form">
+      <h1 class="titulo-tela">{{ editingRec ? 'Editar Recomendação' : 'Cadastro de Recomendação' }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <!-- Seleção em cascata: propriedade filtra as análises.
              Antes esta tela carregava TODAS as análises do usuário só para
              preencher a lista, o que fica insustentável conforme o histórico
@@ -35,60 +33,61 @@
           </small>
         </div>
 
-        <!-- Campos para os dados da recomendação -->
-        <div class="mb-3">
-          <label for="camada_correcao" class="form-label">Camada de Correção</label>
-          <input type="text" class="form-control" id="camada_correcao" v-model="formData.camada_correcao"
-            placeholder="Informe a camada de correção" required >
+        <!-- Não há campo digitável aqui. Todas as doses são calculadas
+             pelo backend (apps/core/agronomia.py) a partir do laudo e dos
+             parâmetros cadastrados na cultura. Um campo editável que o
+             servidor sobrescreve só enganaria quem preenche. -->
+        <div v-if="previa && previa.aplicavel" class="previa">
+          <h3>Recomendação calculada</h3>
+
+          <div class="indices">
+            <div class="indice destaque">
+              <span class="rotulo">Calcário {{ rotuloCalcario(previa.tipo_calcario) }}</span>
+              <span class="valor">{{ doseCalcario }} t/ha</span>
+            </div>
+            <div class="indice">
+              <span class="rotulo">Gesso</span>
+              <span class="valor">{{ previa.gesso }} kg/ha</span>
+            </div>
+            <div class="indice">
+              <span class="rotulo">KCl</span>
+              <span class="valor">{{ previa.kcl }} kg/ha</span>
+            </div>
+            <div class="indice">
+              <span class="rotulo">P₂O₅</span>
+              <span class="valor">{{ previa.p2o5 }} kg/ha</span>
+            </div>
+            <div class="indice">
+              <span class="rotulo">Nitrogênio</span>
+              <span class="valor">{{ previa.n === null ? '—' : previa.n }} kg/ha</span>
+            </div>
+            <div class="indice">
+              <span class="rotulo">Enxofre</span>
+              <span class="valor">{{ previa.s }} kg/ha</span>
+            </div>
+          </div>
+
+          <p class="nota">
+            Método da calagem: {{ previa.metodo_calagem }}<span v-if="previa.v2_utilizado">,
+            com V₂ = {{ previa.v2_utilizado }}%</span><span v-if="previa.prnt_utilizado">
+            e PRNT = {{ previa.prnt_utilizado }}%</span>. Camada de 0 a 20 cm.
+          </p>
+
+          <!-- O que falta cadastrar para o cálculo ficar completo. Campo sem
+               parâmetro sai zerado, e aqui se explica por quê. -->
+          <div v-if="previa.pendencias && previa.pendencias.length" class="pendencias-bloco">
+            <strong>Falta cadastrar para completar o cálculo:</strong>
+            <ul>
+              <li v-for="(p, i) in previa.pendencias" :key="i">{{ p }}</li>
+            </ul>
+          </div>
         </div>
 
-        <div class="mb-3">
-          <label for="calcario_calcitico" class="form-label">Calcário Calcítico</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="calcario_calcitico" v-model="formData.calcario_calcitico"
-            placeholder="Informe a quantidade de calcário calcítico" required >
+        <div v-else-if="previa && !previa.aplicavel" class="alert-danger">
+          {{ previa.motivo }}
         </div>
 
-        <div class="mb-3">
-          <label for="calcario_dolomitico" class="form-label">Calcário Dolomítico</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="calcario_dolomitico" v-model="formData.calcario_dolomitico"
-            placeholder="Informe a quantidade de calcário dolomítico" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="calcario_magnesiano" class="form-label">Calcário Magnesiano</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="calcario_magnesiano" v-model="formData.calcario_magnesiano"
-            placeholder="Informe a quantidade de calcário magnesiano" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="gesso" class="form-label">Gesso</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="gesso" v-model="formData.gesso"
-            placeholder="Informe a quantidade de gesso" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="kcl" class="form-label">KCl</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="kcl" v-model="formData.kcl"
-            placeholder="Informe a quantidade de KCl" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="p2o5" class="form-label">P2O5</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="p2o5" v-model="formData.p2o5"
-            placeholder="Informe a quantidade de P2O5" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="n" class="form-label">Nitrogênio (N)</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="n" v-model="formData.n"
-            placeholder="Informe a quantidade de Nitrogênio (N)" required >
-        </div>
-
-        <div class="mb-3">
-          <label for="s" class="form-label">Enxofre (S)</label>
-          <input type="number" step="0.01" min="0" class="form-control" id="s" v-model="formData.s"
-            placeholder="Informe a quantidade de Enxofre (S)" required >
-        </div>
+        <p v-else-if="formData.analise_solo" class="text-muted">Calculando…</p>
 
         <div class="button-group">
           <!-- Botão para voltar sem salvar alterações -->
@@ -100,7 +99,7 @@
     </div>
 
     <!-- Lista de recomendações cadastradas -->
-    <div v-else class="recomendacao-list-container">
+    <div v-else class="lista-container">
       <!-- Botão para abrir o formulário de cadastro -->
       <div class="button-container">
         <button @click="toggleForm" class="btn-submit">Cadastrar Nova Recomendação</button>
@@ -110,7 +109,7 @@
       <div v-if="recomendacoes.length">
         <div class="container-fluid">
           <!-- Cabeçalho da tabela de recomendações -->
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Análise de Solo <p>(laudo)</p></div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Camada de Correção</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Calcário Calcítico</div>
@@ -124,7 +123,7 @@
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Ações</div>
           </div>
           <!-- Loop para exibir cada recomendação na tabela -->
-          <div v-for="recomendacao in recomendacoes" :key="recomendacao.id" class="row recomendacao-info mb-2">
+          <div v-for="recomendacao in recomendacoes" :key="recomendacao.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">
               {{ recomendacao.analise_data }} — {{ recomendacao.gleba_nome }}
               <p>{{ recomendacao.analise_laudo }}</p>
@@ -169,18 +168,11 @@ export default {
   data() {
     return {
       showForm: false,
+      // Só a análise é escolhida; as doses vêm calculadas do servidor.
       formData: {
-        analisesolo: null,
-        camada_correcao: '',
-        calcario_calcitico: '',
-        calcario_dolomitico: '',
-        calcario_magnesiano: '',
-        gesso: '',
-        kcl: '',
-        p2o5: '',
-        n: '',
-        s: '',
+        analise_solo: '',
       },
+      previa: null,
       analisesolo: [],
       analise_solo: [],
       propriedades: [],
@@ -190,7 +182,20 @@ export default {
     };
   }
   ,
+  computed: {
+    // A calagem sai num único campo, o do tipo indicado pela relação Ca:Mg.
+    doseCalcario() {
+      if (!this.previa) return 0;
+      return this.previa.calcario_calcitico
+        || this.previa.calcario_dolomitico
+        || this.previa.calcario_magnesiano
+        || 0;
+    },
+  },
   watch: {
+    'formData.analise_solo'(id) {
+      this.buscarPrevia(id);
+    },
     propriedadeSelecionada(nova, antiga) {
       // Trocar de propriedade invalida a análise escolhida, que é de outra.
       if (antiga !== '' && nova !== antiga) this.formData.analise_solo = '';
@@ -198,6 +203,22 @@ export default {
     },
   },
   methods: {
+    rotuloCalcario(tipo) {
+      return { calcitico: 'Calcítico', magnesiano: 'Magnesiano',
+               dolomitico: 'Dolomítico' }[tipo] || '';
+    },
+    // Mostra o que será gravado antes de salvar.
+    async buscarPrevia(id) {
+      this.previa = null;
+      if (!id) return;
+      try {
+        const { data } = await api.get(`/analisesolo/${id}/`);
+        this.previa = data.recomendacao_previa;
+      } catch (error) {
+        console.error('Erro ao calcular a prévia:', error);
+        erro(mensagemDeErro(error, 'Não foi possível calcular a recomendação.'));
+      }
+    },
     // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
     recarregar() {
       this.fetchRecomendação();
@@ -312,118 +333,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-/* Estilos do container principal */
-.container-fluid {
-  width: 100%;
-  padding: 0 15px;
-}
-
-/* Estilos dos botões */
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-/* Estilo para o container do formulário e da lista de usuários */
-.form-container,
-.recomendacao-list-container {
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilos para a exibição das informações dos usuários */
-.recomendacao-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-.recomendacao-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-/* Linha vertical entre as colunas */
-.recomendacao-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-/* Estilos dos botões */
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-/* Estilos do botão de cancelar */
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-/* Estilos das labels do formulário */
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-/* Grupo de botões do formulário */
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.button-group .btn-back {
-  margin-right: 10px;
-}
-</style>

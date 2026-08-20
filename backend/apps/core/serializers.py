@@ -4,9 +4,24 @@ from validadores import validar_soma_granulometrica
 from .agronomia import (
     diagnostico as calcular_diagnostico,
     recomendacao_calagem as calcular_calagem,
+    recomendacao_completa,
+    tipo_calcario_indicado,
     classificar_saturacao_bases,
     classificar_saturacao_aluminio,
 )
+
+
+def calcario_para(analise):
+    """
+    Escolhe, entre os calcarios cadastrados pelo dono da analise, o do tipo
+    indicado pela relacao Ca:Mg - preferindo o de maior PRNT, que exige menos
+    produto para o mesmo efeito.
+    """
+    if not analise.gleba_id:
+        return None
+    dono = analise.gleba.propriedade.produtor.usuario_id
+    tipo = tipo_calcario_indicado(analise.ca, analise.mg)
+    return Calcario.objects.filter(usuario_id=dono, tipo=tipo).order_by('-prnt').first()
 from .models import Usuario, Produtor, Propriedade, Laboratorio, Cultura, Calcario, Gleba, AnaliseSolo, Recomendacao
 
 
@@ -237,23 +252,26 @@ class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
         dados['classificacao_m'] = classificar_saturacao_aluminio(dados['saturacao_aluminio'])
         return dados
 
+    # Previa da recomendacao: o que a tela de Recomendacoes vai gravar se
+    # esta analise for escolhida. Deixa o usuario conferir antes de salvar.
+    recomendacao_previa = serializers.SerializerMethodField()
+
+    def get_recomendacao_previa(self, obj):
+        if obj.camada != '0-20':
+            return {'aplicavel': False,
+                    'motivo': f'Análise da camada {obj.camada} cm; '
+                              'a recomendação é calculada sobre 0-20 cm.'}
+        dados = recomendacao_completa(obj, calcario=calcario_para(obj))
+        dados['aplicavel'] = True
+        return dados
+
     def get_calagem(self, obj):
         v2 = obj.cultura.saturacao_bases_desejada if obj.cultura_id else None
 
         # O PRNT vem do calcario indicado pela relacao Ca:Mg, entre os que o
         # usuario cadastrou. Sem cadastro, sai so a necessidade teorica.
-        prnt = None
-        calcario = None
-        if obj.gleba_id:
-            from .agronomia import tipo_calcario_indicado
-            tipo = tipo_calcario_indicado(obj.ca, obj.mg)
-            dono = obj.gleba.propriedade.produtor.usuario_id
-            calcario = (
-                Calcario.objects.filter(usuario_id=dono, tipo=tipo)
-                .order_by('-prnt').first()
-            )
-            if calcario:
-                prnt = calcario.prnt
+        calcario = calcario_para(obj)
+        prnt = calcario.prnt if calcario else None
 
         resultado = calcular_calagem(obj, v2=v2, prnt=prnt)
         if resultado.get('aplicavel'):
@@ -289,17 +307,68 @@ class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
 
 
 class RecomendacaoSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
+    """
+    Recomendacao gerada pelo sistema.
+
+    Nenhuma dose e digitada: ao informar a analise, todos os campos sao
+    calculados em apps/core/agronomia.py a partir dos valores do laudo e dos
+    parametros cadastrados na cultura. Por isso todos entram em
+    read_only_fields - um campo editavel que o servidor sobrescreve seria
+    apenas uma forma de enganar quem preenche.
+
+    'pendencias' lista o que falta cadastrar para o calculo ficar completo.
+    """
+
     querysets_por_dono = {
         'analise_solo': lambda user: AnaliseSolo.objects.filter(
             gleba__propriedade__produtor__usuario=user
         ),
     }
-    # Campos de leitura para a listagem. Sem eles a tela precisaria carregar
-    # todas as analises so para descobrir o laudo de cada recomendacao.
+    # Campos de leitura para a listagem.
     analise_laudo = serializers.CharField(source='analise_solo.laudo', read_only=True)
     analise_data = serializers.DateField(source='analise_solo.data', read_only=True)
     gleba_nome = serializers.CharField(source='analise_solo.gleba.nome', read_only=True)
+    cultura_nome = serializers.CharField(source='analise_solo.cultura.nome', read_only=True)
+    # Contexto do calculo: de onde saiu cada numero e o que ainda falta.
+    memoria_calculo = serializers.SerializerMethodField()
 
     class Meta:
         model = Recomendacao
         fields = '__all__'
+        read_only_fields = [
+            'camada_correcao', 'calcario_calcitico', 'calcario_dolomitico',
+            'calcario_magnesiano', 'gesso', 'kcl', 'p2o5', 'n', 's',
+        ]
+
+    def get_memoria_calculo(self, obj):
+        if not obj.analise_solo_id:
+            return None
+        analise = obj.analise_solo
+        dados = recomendacao_completa(analise, calcario=calcario_para(analise))
+        return {
+            'metodo_calagem': dados['metodo_calagem'],
+            'tipo_calcario': dados['tipo_calcario'],
+            'necessidade_calagem_t_ha': dados['necessidade_calagem_t_ha'],
+            'v2_utilizado': dados['v2_utilizado'],
+            'prnt_utilizado': dados['prnt_utilizado'],
+            'k2o_kg_ha': dados['k2o_kg_ha'],
+            'pendencias': dados['pendencias'],
+        }
+
+    def _preencher(self, validated_data):
+        """Substitui o que veio do cliente pelo resultado do calculo."""
+        analise = validated_data['analise_solo']
+        calculado = recomendacao_completa(analise, calcario=calcario_para(analise))
+        for campo in self.Meta.read_only_fields:
+            valor = calculado.get(campo)
+            # Campo sem parametro cadastrado fica zerado, e a pendencia
+            # correspondente explica o motivo na resposta.
+            validated_data[campo] = valor if valor is not None else 0
+        return validated_data
+
+    def create(self, validated_data):
+        return super().create(self._preencher(validated_data))
+
+    def update(self, instance, validated_data):
+        validated_data.setdefault('analise_solo', instance.analise_solo)
+        return super().update(instance, self._preencher(validated_data))

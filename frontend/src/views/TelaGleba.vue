@@ -1,11 +1,11 @@
 <template>
   <div class="container-fluid">
-    <h1 v-if="!showForm"><br>Lista de Glebas</h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Glebas</h1>
 
     <!-- Formulário de cadastro/edição -->
     <div v-if="showForm" class="form-container">
-      <h1>{{ editingGleba ? 'Editar Gleba' : 'Cadastro de Gleba' }}</h1>
-      <form @submit.prevent="submitForm" class="user-form">
+      <h1 class="titulo-tela">{{ editingGleba ? 'Editar Gleba' : 'Cadastro de Gleba' }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <div class="mb-3">
           <label for="propriedade" class="form-label">Propriedade</label>
           <select id="propriedade" v-model="formData.propriedade" class="form-control" required>
@@ -32,19 +32,18 @@
     </div>
 
     <!-- Listagem -->
-    <div v-else class="user-list-container">
+    <div v-else class="lista-container">
       <div class="button-container">
         <button @click="toggleForm" class="btn-submit">Cadastrar Nova Gleba</button>
       </div>
-      <br>
       <div v-if="glebas.length">
         <div class="container-fluid">
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4">Gleba</div>
             <div class="col-12 col-sm-6 col-md-4">Propriedade</div>
             <div class="col-12 col-sm-6 col-md-4">Ações</div>
           </div>
-          <div v-for="gleba in glebas" :key="gleba.id" class="row user-info mb-2">
+          <div v-for="gleba in glebas" :key="gleba.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4">{{ gleba.nome }}</div>
             <div class="col-12 col-sm-6 col-md-4">{{ gleba.propriedade_nome }}</div>
             <div class="col-12 col-sm-6 col-md-4">
@@ -164,62 +163,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.form-container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.user-list-container {
-  padding: 20px;
-}
-
-.user-info {
-  border-bottom: 1px solid #ddd;
-  padding: 8px 0;
-}
-
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.btn-submit,
-.btn-back {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #4a4a4a;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover {
-  background-color: #666;
-}
-
-.btn-edit,
-.btn-delete {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1rem;
-}
-
-.text-muted {
-  color: #6c757d;
-  font-size: 0.85rem;
-}
-
-.alert-danger {
-  background-color: #f8d7da;
-  color: #842029;
-  padding: 8px 12px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-</style>

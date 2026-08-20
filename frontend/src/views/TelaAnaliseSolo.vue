@@ -1,16 +1,15 @@
 <template>
-  <div>
-    <br>
-    <br>
-    <h1 v-if="!showForm && !showDetail" class="mt-4"><br>Lista de Analises de Solo</h1>
-    <br>
-    <div br class="form-container"><br>
-      <h1></h1>
+  <div class="container-fluid">
+    <h1 v-if="!showForm && !showDetail" class="titulo-tela">Lista de Análises de Solo</h1>
+    <h1 v-if="showDetail" class="titulo-tela">Detalhes da Análise</h1>
 
-      <!-- Formulário de cadastro/edição de analises de solo -->
-      <div v-if="showForm" class="form-container1">
-        <h1>{{ editingSolo ? 'editar analise de solo' : 'cadastro de analise de solo' }}</h1>
-        <form @submit.prevent="submitForm" class="lab-form">
+    <!-- Cada seção na sua própria caixa. Antes um único .form-container
+         envolvia a tela toda, e como ele limita a largura para leitura de
+         formulário, a listagem saía espremida. -->
+    <div>
+      <div v-if="showForm" class="form-container">
+        <h1 class="titulo-tela">{{ editingSolo ? 'Editar Análise de Solo' : 'Cadastro de Análise de Solo' }}</h1>
+        <form @submit.prevent="submitForm" class="tela-form">
           <!-- Campo para o laboratorio -->
           <div class="mb-3">
             <label for="laboratorio" class="form-label">laboratorio</label>
@@ -189,15 +188,14 @@
           </div>
         </form>
       </div>
-      <!-- Botão para abrir o formulário de cadastro, sempre visível -->
-      <div v-if="!showForm && !showDetail" class="button-container">
-        <button @click="toggleForm" class="btn-submit">Cadastrar nova análise de solo</button>
-      </div>
-      <!--LISTA DE ANALISES DE SOLOS CADASTRADAS -->
-      <div v-if="!showForm && !showDetail && analisesSolo.length">
-        <div class="container-fluid">
+      <!-- Listagem -->
+      <div v-if="!showForm && !showDetail" class="lista-container">
+        <div class="button-container">
+          <button @click="toggleForm" class="btn-submit">Cadastrar nova análise de solo</button>
+        </div>
+        <div v-if="analisesSolo.length">
           <!-- Cabeçalho da tabela de analises -->
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">laboratorio</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">propriedade</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">cultura</div>
@@ -208,7 +206,7 @@
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">ação</div>
           </div>
           <!-- Loop para exibir cada analise de solo na tabela -->
-          <div v-for="analisesolo in analisesSolo" :key="analisesolo.id" class="row user-info mb-2">
+          <div v-for="analisesolo in analisesSolo" :key="analisesolo.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ getlaboratorioNome(analisesolo.laboratorio) }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ analisesolo.propriedade_nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ getculturaNome(analisesolo.cultura) }}</div>
@@ -220,7 +218,7 @@
               <!-- Lista de Análises de Solo, oculta quando o formulário está ativo -->
               <button @click="startEditing(analisesolo)" class="btn-edit">🖊️</button>
               <button @click="deleteSolo(analisesolo.id)" class="btn-delete">🗑️</button>
-              <button @click="viewDetails(analisesolo)" class="btn-VerMais">🔎</button> <!-- Alterado -->
+              <button @click="viewDetails(analisesolo)" class="btn-detalhe" title="Ver detalhes">🔎</button>
             </div>
             <!-- Exibe campos adicionais se 'vermaiscampos' da análise estiver ativado -->
             <div v-if="analisesolo.vermaiscampos" class="extra-fields">
@@ -231,9 +229,15 @@
             </div>
           </div>
         </div>
+        <div v-else>
+          <p>Nenhuma análise de solo encontrada.</p>
+        </div>
+        <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
+          :total="paginacao.total" @mudar="irParaPagina" />
       </div>
+
       <!-- Visualização dos detalhes da análise de solo -->
-      <div v-if="showDetail">
+      <div v-if="showDetail" class="lista-container">
         <h2>Detalhes da Análise de Solo de laudo: {{ selectedSolo.laudo }}</h2>
 
         <!-- Índices derivados, calculados pelo backend a partir dos valores da
@@ -317,7 +321,7 @@
               </div>
               <div class="indice">
                 <span class="rotulo">Tipo indicado</span>
-                <span class="valor">{{ selectedSolo.calagem.tipo_indicado }}</span>
+                <span class="valor">{{ rotuloCalcario(selectedSolo.calagem.tipo_indicado) }}</span>
               </div>
               <div class="indice">
                 <span class="rotulo">Método</span>
@@ -392,13 +396,6 @@
   <button @click="showDetail = false" class="btn-back">Voltar</button>
 </div>
       </div>
-      <!-- Exibe mensagem se não houver análises de solo cadastradas -->
-      <div v-else-if="!showForm && analisesSolo.length === 0">
-        <p>Nenhuma análise de solo encontrada.</p>
-      </div>
-      <PaginacaoLista v-if="!showForm && !showDetail" :pagina="pagina"
-        :total-paginas="paginacao.totalPaginas" :total="paginacao.total"
-        @mudar="irParaPagina" />
     </div>
   </div>
 </template>
@@ -483,6 +480,14 @@ export default {
     // em vez de deixar "null" aparecer na tela.
     formatar(valor) {
       return valor === null || valor === undefined ? '—' : valor;
+    },
+    // A API devolve o valor cru do campo ('calcitico'); aqui vira texto.
+    rotuloCalcario(tipo) {
+      return {
+        calcitico: 'Calcítico',
+        magnesiano: 'Magnesiano',
+        dolomitico: 'Dolomítico',
+      }[tipo] || '—';
     },
     // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
     recarregar() {
@@ -653,162 +658,14 @@ export default {
 
 
 <style scoped>
-/* Container do formulário com sombra e borda */
-.form-container {
-  width: 100%;
-  padding: 0 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilo do formulário de laboratório */
-.lab-form {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Estilo das linhas do formulário */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Grupo de campos do formulário, ajusta o tamanho das colunas */
-.form-group {
-  flex: 1 1 150px;
-  min-width: 150px;
-}
-
-/* Grupo de botões, alinha os botões ao final */
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-/* Container de botões, alinha o texto à esquerda */
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-/* Estilo das linhas da lista de usuários */
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-/* Linha dos usuários, separadores entre colunas */
-.user-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-.user-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-/* Botões estilizados para ações de formulário e lista */
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back,
-.btn-VerMais {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-/* Estilo dos botões de submit, back e edit */
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-.btn-VerMais {
-  background-color: rgb(76, 76, 199);
-  color: white;
-}
-
-/* Estilo do botão de delete */
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-/* Estilo do botão de cancel */
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-/* Estilo das labels dos campos do formulário */
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-/* Faz com que todos os inputs de texto e número ocupem 100% da largura */
-.form-container input[type="text"],
-.form-container input[type="number"],
-.form-container input[type="date"],
-.form-container select {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Certifica-se de que os campos de formulário ocupem o máximo de espaço horizontal */
-.lab-form .mb-3 {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
+/* Apenas o que é específico desta tela.
+   O padrão comum vive em src/estilos/base.css. */
 .table {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #ddd;
 }
 
-.button-container {
-  text-align: left;
-  margin-top: 20px;
-}
-
-/* Bloco de diagnóstico */
 .diagnostico {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -860,7 +717,6 @@ export default {
   color: #6c757d;
 }
 
-/* Bloco de calagem */
 .calagem {
   background-color: #f4f8f4;
   border: 1px solid #cfe0cf;

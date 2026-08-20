@@ -114,6 +114,56 @@ class Cultura(models.Model):
         verbose_name='Saturação por bases desejada (V₂) em %',
     )
 
+    # ------------------------------------------------------------------
+    # Parametros de adubacao.
+    #
+    # Sao eles que permitem a Recomendacao ser inteiramente calculada, sem
+    # ninguem digitar dose. Cada um vem da fonte de referencia adotada - o
+    # sistema aplica, nao arbitra.
+    #
+    # Ficam opcionais: uma cultura sem parametro simplesmente nao tem aquela
+    # dose calculada, e a Recomendacao informa o que falta. E melhor deixar
+    # em branco e dizer por que do que preencher com um numero sem lastro.
+    # ------------------------------------------------------------------
+
+    # Participacao de K na CTC que se quer atingir (tipicamente 3% a 5%).
+    # A dose de potassio sai da diferenca entre esse alvo e o teor atual.
+    saturacao_k_desejada = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('100'))],
+        verbose_name='Saturação de K na CTC desejada (%)',
+    )
+
+    # Teor de fosforo que se quer atingir no solo, em mg/dm3.
+    fosforo_desejado = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Fósforo desejado (mg/dm³)',
+    )
+
+    # Quanto de P2O5 e preciso aplicar para elevar 1 mg/dm3 de P no solo.
+    # Varia com a textura, porque solo argiloso fixa mais fosforo.
+    fator_fixacao_fosforo = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='kg de P₂O₅ por mg/dm³ de P a elevar',
+    )
+
+    # Nitrogenio NAO se calcula a partir da analise de solo: depende da
+    # cultura e da produtividade esperada. Entra aqui como dose da fonte.
+    nitrogenio_recomendado = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Nitrogênio recomendado (kg/ha)',
+    )
+
+    # Enxofre: teor minimo desejado no solo, em mg/dm3.
+    enxofre_desejado = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name='Enxofre desejado (mg/dm³)',
+    )
+
     objects = models.Manager()
 
     class Meta:

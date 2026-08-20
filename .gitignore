@@ -2,7 +2,8 @@
 # Descreve falhas ainda abertas do sistema (incluindo uma de segurança),
 # entao nao vai para o repositorio publico.
 ERROS_CONHECIDOS.md
-
+context.md
+.claude
 # Sistema operacional
 .DS_Store
 Thumbs.db

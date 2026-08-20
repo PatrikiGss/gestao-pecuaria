@@ -1,12 +1,11 @@
 <template>
   <div class="container-fluid">
-    <h1></h1>
     <!-- Título da Lista de laboratórios -->
-    <h1 v-if="!showForm" class="mt-4"> <br> Lista de Laboratórios</h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Laboratórios</h1>
     <!-- Formulário de cadastro/edição de laboratórios -->
     <div v-if="showForm" class="form-container">
-      <h1>{{ editingLab ? 'Editar Laboratório' : "Cadastrar Laboratório" }}</h1>
-      <form @submit.prevent="submitForm" class="lab-form">
+      <h1 class="titulo-tela">{{ editingLab ? 'Editar Laboratório' : "Cadastrar Laboratório" }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <!-- Campo para o Endereço -->
         <div class="mb-3">
           <label for="endereco" class="form-label">Endereço</label>
@@ -54,15 +53,14 @@
     </div>
     <!-- Lista de laboratórios -->
     <div v-if="!showForm" class="lab-list mt-5">
-      <div class="container-fluidd">
+      <div class="lista-container">
         <!-- Botão para abrir o formulário de cadastro -->
-        <br>
         <div class="button-container">
           <button @click="toggleForm" class="btn-submit">Cadastrar novo laboratorio</button>
         </div>
         <!-- Verifica se há laboratórios cadastrados -->
         <div v-if="laboratorios.length">
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Usuário</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Endereço</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Nome</div>
@@ -72,7 +70,7 @@
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">Estado</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Ação</div>
           </div>
-          <div v-for="laboratorio in laboratorios" :key="laboratorio.id" class="row user-info mb-2">
+          <div v-for="laboratorio in laboratorios" :key="laboratorio.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ getUsuarioNome(laboratorio.usuario) }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ laboratorio.endereco }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ laboratorio.nome }}</div>
@@ -212,137 +210,3 @@ export default {
   }
 };
 </script>
-
-
-<style scoped>
-/* Container geral com fundo e borda */
-.container-fluidd {
-  width: 100%;
-  padding: 0 15px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-}
-
-/* Container do formulário com sombra e borda */
-.form-container {
-  width: 100%;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilo do formulário de laboratório */
-.lab-form {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Estilo das linhas do formulário */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Grupo de campos do formulário, ajusta o tamanho das colunas */
-.form-group {
-  flex: 1 1 150px;
-  min-width: 150px;
-}
-
-/* Grupo de botões, alinha os botões ao final */
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-/* Container de botões, alinha o texto à esquerda */
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-/* Estilo das linhas da lista de usuários */
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-/* Linha dos usuários, separadores entre colunas */
-.user-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-.user-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-/* Botões estilizados para ações de formulário e lista */
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-/* Estilo dos botões de submit, back e edit */
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-/* Estilo do botão de delete */
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-/* Estilo do botão de cancel */
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-/* Estilo das labels dos campos do formulário */
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-</style>

@@ -1,10 +1,10 @@
 <template>
   <div class="container-fluid">
-    <h1 v-if="!showForm"><br>Calcários</h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Calcários</h1>
 
     <div v-if="showForm" class="form-container">
-      <h1>{{ editando ? 'Editar Calcário' : 'Cadastrar Calcário' }}</h1>
-      <form @submit.prevent="submitForm" class="calcario-form">
+      <h1 class="titulo-tela">{{ editando ? 'Editar Calcário' : 'Cadastrar Calcário' }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <div class="mb-3">
           <label for="nome" class="form-label">Nome</label>
           <input type="text" class="form-control" id="nome" v-model="formData.nome"
@@ -59,17 +59,16 @@
       <div class="button-container">
         <button @click="toggleForm" class="btn-submit">Cadastrar Novo Calcário</button>
       </div>
-      <br>
       <div v-if="calcarios.length">
         <div class="container-fluid">
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-3">Nome</div>
             <div class="col-12 col-sm-6 col-md-3">Tipo</div>
             <div class="col-12 col-sm-6 col-md-2">PRNT</div>
             <div class="col-12 col-sm-6 col-md-2">CaO / MgO</div>
             <div class="col-12 col-sm-6 col-md-2">Ações</div>
           </div>
-          <div v-for="calcario in calcarios" :key="calcario.id" class="row linha mb-2">
+          <div v-for="calcario in calcarios" :key="calcario.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-3">{{ calcario.nome }}</div>
             <div class="col-12 col-sm-6 col-md-3">{{ calcario.tipo_descricao }}</div>
             <div class="col-12 col-sm-6 col-md-2">{{ calcario.prnt }}%</div>
@@ -200,67 +199,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.form-container {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-}
-
-.calcario-form {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-
-.lista-container {
-  padding: 20px;
-}
-
-.linha {
-  border-bottom: 1px solid #ddd;
-  padding: 8px 0;
-}
-
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.button-container {
-  text-align: left;
-}
-
-.btn-submit,
-.btn-back {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #4a4a4a;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover {
-  background-color: #666;
-}
-
-.btn-edit,
-.btn-delete {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1rem;
-}
-
-.text-muted {
-  color: #6c757d;
-  font-size: 0.85rem;
-}
-</style>

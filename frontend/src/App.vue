@@ -21,7 +21,7 @@
         </div>
         <span class="current-name">{{ currentName }}</span>
       </div>
-      <div class="user-info">
+      <div class="lista-linha">
         <div class="dropdown">
           <button class="btn dropdown-toggle logout-button user-name" type="button" id="logoutDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             <span class="user-name">{{ nome }}</span> 
@@ -158,7 +158,7 @@ export default {
 }
 
 /* Container para o nome do usuário e botão de logout */
-.user-info {
+.lista-linha {
   display: flex;
   align-items: center;
 }

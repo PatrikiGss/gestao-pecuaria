@@ -1,17 +1,15 @@
 <template>
   <div class="container-fluid">
     <!-- Título da página -->
-    <h1></h1>
     <!-- Exibe o título "Lista de Usuários" se o formulário não estiver sendo exibido -->
-    <h1 v-if="!showForm"><br>Lista de Usuários</h1>
-    <h1 v-if="!showForm"><br></h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Usuários</h1>
 
     <!-- Formulário de cadastro de usuários -->
     <div v-if="showForm" class="form-container">
-      <!-- Título do formulário, muda dinamicamente entre 'Editar Usuário' e 'Cadastro de Usuários' -->
-      <h1>{{ editingUser ? 'Editar Usuário' : 'Cadastro de Usuários' }}</h1>
+      <!-- Título do formulário, muda dinamicamente entre 'Editar Usuário' e 'Cadastro de Usuário' -->
+      <h1 class="titulo-tela">{{ editingUser ? 'Editar Usuário' : 'Cadastro de Usuário' }}</h1>
       <!-- Formulário de usuário -->
-      <form @submit.prevent="submitForm" class="user-form">
+      <form @submit.prevent="submitForm" class="tela-form">
         <!-- Campo para o nome -->
         <div class="mb-3">
           <label for="nome" class="form-label">Nome</label>
@@ -54,7 +52,7 @@
     </div>
 
     <!-- Lista de usuários cadastrados -->
-    <div v-else class="user-list-container">
+    <div v-else class="lista-container">
       <!-- Botão para abrir o formulário de cadastro -->
       <!-- <div class="button-container">
         <button v-if="!isAuthenticated" @click="toggleForm" class="btn-submit">Cadastrar Novo Usuário</button>
@@ -63,7 +61,7 @@
       <div v-if="usuarios.length">
         <div class="container-fluid">
           <!-- Cabeçalho da tabela de usuários -->
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Nome</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">E-mail</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Telefone</div>
@@ -72,7 +70,7 @@
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">Ações</div>
           </div>
           <!-- Loop para exibir cada usuário na tabela -->
-          <div v-for="usuario in usuarios" :key="usuario.id" class="row user-info mb-2">
+          <div v-for="usuario in usuarios" :key="usuario.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ usuario.nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ usuario.email }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ usuario.telefone }}</div>
@@ -219,119 +217,3 @@ export default {
   },
 };
 </script>
-
-
-<style scoped>
-/* Estilos do container principal */
-.container-fluid {
-  width: 100%;
-  padding: 0 15px;
-}
-
-/* Estilos dos botões */
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-/* Estilo para o container do formulário e da lista de usuários */
-.form-container,
-.user-list-container {
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilos para a exibição das informações dos usuários */
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-.user-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-/* Linha vertical entre as colunas */
-.user-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-/* Estilos dos botões */
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-/* Estilos do botão de cancelar */
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-/* Estilos das labels do formulário */
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-/* Grupo de botões do formulário */
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.button-group .btn-back {
-  margin-right: 10px;
-}
-</style>

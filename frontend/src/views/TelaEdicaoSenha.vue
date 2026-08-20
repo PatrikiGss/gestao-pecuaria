@@ -1,27 +1,35 @@
 <template>
-    <div class="change-password-form">
-      <h2>Alterar Senha</h2>
-      <form @submit.prevent="submitPasswordChange">
-        <div class="form-group">
-          <label for="oldPassword"></label>
-          <input class="input" type="password" id="oldPassword" v-model="oldPassword" required placeholder="Senha Atual" />
-        </div>
-        <div class="form-group">
-          <label for="newPassword"></label>
-          <input class="input" type="password" id="newPassword" v-model="newPassword" required placeholder="Nova Senha" />
-        </div>
-        <button type="submit" class="envio">Alterar Senha</button>
-        <button type="button" class="cancelar" @click="cancel">Cancelar</button>
-      </form>
-      <p v-if="message" :class="{'text-success': messageType === 'success', 'text-danger': messageType === 'error'}">
-        {{ message }}
-      </p>
+    <div class="container-fluid">
+      <h1 class="titulo-tela">Alterar Senha</h1>
+      <div class="form-container">
+        <form @submit.prevent="submitPasswordChange" class="tela-form">
+          <div class="mb-3">
+            <label for="oldPassword" class="form-label">Senha atual</label>
+            <input class="form-control" type="password" id="oldPassword"
+              v-model="oldPassword" required placeholder="Digite sua senha atual" />
+          </div>
+          <div class="mb-3">
+            <label for="newPassword" class="form-label">Nova senha</label>
+            <input class="form-control" type="password" id="newPassword"
+              v-model="newPassword" required placeholder="Digite a nova senha" />
+            <small class="text-muted">
+              A senha passa pelos validadores do servidor: mínimo de caracteres,
+              não puramente numérica e não pode ser óbvia demais.
+            </small>
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn-back" @click="cancel">Cancelar</button>
+            <button type="submit" class="btn-submit">Alterar Senha</button>
+          </div>
+        </form>
+      </div>
     </div>
   </template>
   
   <script>
   import api from '@/interceptadorAxios';
-import { sucesso } from '@/notificacoes';
+import { erro, sucesso } from '@/notificacoes';
+  import { mensagemDeErro } from '@/erros';
   import { limparSessao } from '@/sessao';
 
   export default {
@@ -29,9 +37,7 @@ import { sucesso } from '@/notificacoes';
       return {
         oldPassword: "",
         newPassword: "",
-        message: "",
-        messageType: ""
-      };
+};
     },
     methods: {
       async submitPasswordChange() {
@@ -48,17 +54,17 @@ import { sucesso } from '@/notificacoes';
           // copiada do App.vue).
           limparSessao();
           this.$router.push('/');
-          this.messageType = "success";
-          this.oldPassword = "";
+            this.oldPassword = "";
           this.newPassword = "";
         } catch (error) {
           if (error.response && error.response.status === 401) {
-            this.message = "Sessão expirada. Faça login novamente.";
+            erro("Sessão expirada. Faça login novamente.");
             this.$router.push('/');
-            this.messageType = "error";
           } else {
-            this.message = "Erro ao alterar a senha. Verifique os dados.";
-            this.messageType = "error";
+            // A API detalha o motivo por campo (senha atual incorreta, nova
+            // senha fraca, nova igual à atual). Mostra isso em vez de um
+            // texto genérico.
+            erro(mensagemDeErro(error, "Erro ao alterar a senha."));
           }
         }
       },
@@ -68,61 +74,3 @@ import { sucesso } from '@/notificacoes';
     }
   };
   </script>
-  
-  <style scoped>
-  .change-password-form {
-    background-color: rgba(0, 0, 0, 0.9);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 80px; 
-    border-radius: 20px;
-    color: white;
-  }
-  
-  .form-group {
-    margin-bottom: 10px; 
-  }
-  
-  .input {
-    padding: 15px;
-    border: none;
-    font-size: 15px;
-    border-radius: 10px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .envio, .cancelar {
-    background-color: #237837;
-    border: none;
-    padding: 15px; 
-    width: 100%;
-    border-radius: 10px;
-    font-size: 15px;
-    cursor: pointer;
-    margin-top: 10px; 
-  }
-  
-  .cancelar {
-    background-color: red;
-  }
-  
-  .envio:hover {
-    background-color: #218838;
-  }
-  
-  .cancelar:hover {
-    background-color: rgb(144, 33, 33);
-  }
-  
-  .text-success {
-    color: green;
-  }
-  
-  .text-danger {
-    color: red;
-  }
-  </style>
-  

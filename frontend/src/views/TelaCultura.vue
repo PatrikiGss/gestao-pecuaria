@@ -1,11 +1,10 @@
 <template>
   <div class="container-fluid">
-    <h1></h1>
-    <h1 v-if="!showForm" class="mt-4"><br>Lista de culturas</h1>
+    <h1 v-if="!showForm" class="titulo-tela">Lista de Culturas</h1>
     <!-- Formulário de cadastro/edição de culturas -->
     <div v-if="showForm" class="form-container">
-      <h1>{{ editingcultura ? 'Editar Cultura' : 'Cadastrar Cultura' }}</h1>
-      <form @submit.prevent="submitForm" class="cultura-form">
+      <h1 class="titulo-tela">{{ editingcultura ? 'Editar Cultura' : 'Cadastrar Cultura' }}</h1>
+      <form @submit.prevent="submitForm" class="tela-form">
         <!-- Campo para o Nome -->
         <div class="mb-3">
           <label for="nome" class="form-label">Nome</label>
@@ -30,31 +29,87 @@
           </small>
         </div>
 
+        <!-- Parâmetros de adubação. São eles que permitem a Recomendação ser
+             inteiramente calculada. Cada um vem da fonte de referência que
+             você adotar — o sistema aplica, não arbitra. -->
+        <div class="mb-3">
+          <label for="saturacao_k_desejada" class="form-label">
+            Saturação de K na CTC desejada
+          </label>
+          <input type="number" step="0.01" min="0" max="100" class="form-control"
+            id="saturacao_k_desejada" v-model="formData.saturacao_k_desejada"
+            placeholder="Ex: 4" />
+          <small class="text-muted">
+            Em %. Define a dose de potássio: o sistema calcula quanto falta
+            para o K ocupar essa fração da CTC.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label for="fosforo_desejado" class="form-label">Fósforo desejado</label>
+          <input type="number" step="0.01" min="0" class="form-control"
+            id="fosforo_desejado" v-model="formData.fosforo_desejado" placeholder="Ex: 20" />
+          <small class="text-muted">Em mg/dm³. Teor de P que se quer atingir no solo.</small>
+        </div>
+
+        <div class="mb-3">
+          <label for="fator_fixacao_fosforo" class="form-label">
+            Fator de fixação de fósforo
+          </label>
+          <input type="number" step="0.01" min="0" class="form-control"
+            id="fator_fixacao_fosforo" v-model="formData.fator_fixacao_fosforo"
+            placeholder="Ex: 5" />
+          <small class="text-muted">
+            Quantos kg de P₂O₅ são necessários para elevar 1 mg/dm³ de P.
+            Varia com a textura, porque solo argiloso fixa mais fósforo.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label for="nitrogenio_recomendado" class="form-label">
+            Nitrogênio recomendado
+          </label>
+          <input type="number" step="0.01" min="0" class="form-control"
+            id="nitrogenio_recomendado" v-model="formData.nitrogenio_recomendado"
+            placeholder="Ex: 30" />
+          <small class="text-muted">
+            Em kg/ha. O nitrogênio <strong>não é calculável a partir da análise
+            de solo</strong> — depende da cultura e da produtividade esperada.
+            Por isso entra aqui como dose da sua fonte.
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <label for="enxofre_desejado" class="form-label">Enxofre desejado</label>
+          <input type="number" step="0.01" min="0" class="form-control"
+            id="enxofre_desejado" v-model="formData.enxofre_desejado" placeholder="Ex: 12" />
+          <small class="text-muted">Em mg/dm³. Teor de S que se quer atingir no solo.</small>
+        </div>
+
         <!-- Botões de ação para enviar e cancelar -->
         <div class="button-group">
-          <button type="button" @click="toggleForm" class="btn-cancel">Voltar</button>
+          <button type="button" @click="toggleForm" class="btn-back">Voltar</button>
           <button type="submit" class="btn-submit">{{ editingcultura ? 'Atualizar Cultura' : 'Cadastrar Cultura'
             }}</button>
         </div>
       </form>
     </div>
 
-    <!-- Lista de culturas -->
-    <div v-if="!showForm" class="cultura-list mt-5">
-      <div class="container-fluidd">
+    <!-- Lista de Culturas -->
+    <div v-if="!showForm" class="lista-container mt-5">
+      <div>
         <!-- Botão para abrir o formulário de cultura -->
-        <br />
         <div class="button-container">
           <button @click="toggleForm" class="btn-submit">Cadastrar nova Cultura</button>
         </div>
         <!-- Verifica se há culturas cadastradas -->
         <div v-if="culturas.length">
-          <div class="row font-weight-bold mb-2">
+          <div class="row lista-cabecalho mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">Nome</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">V₂ desejado</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">Ação</div>
           </div>
-          <div v-for="cultura in culturas" :key="cultura.id" class="row user-info mb-2">
+          <div v-for="cultura in culturas" :key="cultura.id" class="row lista-linha mb-2">
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">{{ cultura.nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
               <span v-if="cultura.saturacao_bases_desejada">{{ cultura.saturacao_bases_desejada }}%</span>
@@ -82,6 +137,9 @@
 
 <script>
 import api from '@/interceptadorAxios';
+
+// Parâmetros de adubação, opcionais, que alimentam o cálculo da recomendação.
+const PARAMETROS = ['saturacao_k_desejada', 'fosforo_desejado', 'fator_fixacao_fosforo', 'nitrogenio_recomendado', 'enxofre_desejado'];
 import { confirmar, erro, sucesso } from '@/notificacoes';
 import PaginacaoLista from '@/components/PaginacaoLista.vue';
 import listaPaginada from '@/mixins/listaPaginada';
@@ -95,6 +153,11 @@ export default {
       formData: {
         nome: '',
         saturacao_bases_desejada: '',
+        saturacao_k_desejada: '',
+        fosforo_desejado: '',
+        fator_fixacao_fosforo: '',
+        nitrogenio_recomendado: '',
+        enxofre_desejado: '',
       },
       culturas: [],
       showForm: false,
@@ -102,6 +165,14 @@ export default {
     };
   },
   methods: {
+    // A API espera número ou ausência do campo; string vazia seria recusada.
+    montarPayload() {
+      const payload = { ...this.formData };
+      ['saturacao_bases_desejada', ...PARAMETROS].forEach((campo) => {
+        if (payload[campo] === '' || payload[campo] === null) delete payload[campo];
+      });
+      return payload;
+    },
     // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
     recarregar() {
       this.fetchculturas();
@@ -110,7 +181,7 @@ export default {
     toggleForm() {
       this.showForm = !this.showForm;
       this.editingcultura = false;
-      this.formData = { nome: '', saturacao_bases_desejada: '' };
+      this.formData = { nome: '', saturacao_bases_desejada: '', saturacao_k_desejada: '', fosforo_desejado: '', fator_fixacao_fosforo: '', nitrogenio_recomendado: '', enxofre_desejado: '', };
     },
     // Obtém o nome do usuário a partir do ID
     // Busca todos as culturas
@@ -132,7 +203,7 @@ export default {
     // descartar silenciosamente o 4o argumento.
         if (this.editingcultura) {
           // Atualiza a cultura existente
-          const response = await api.put(`/culturas/${this.formData.id}/`, this.formData);
+          const response = await api.put(`/culturas/${this.formData.id}/`, this.montarPayload());
           if (response.status === 200) {
             sucesso('cultura atualizado com sucesso!');
             this.fetchculturas();
@@ -142,7 +213,7 @@ export default {
           }
         } else {
           // Cadastra uma nova cultura
-          const response = await api.post('/culturas/', this.formData);
+          const response = await api.post('/culturas/', this.montarPayload());
           if (response.status === 201) {
             sucesso('cultura cadastrada com sucesso!');
             this.culturas.push(response.data);
@@ -186,136 +257,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-/* Container geral com fundo e borda */
-.container-fluidd {
-  width: 100%;
-  padding: 0 15px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-}
-
-/* Container do formulário com sombra e borda */
-.form-container {
-  width: 100%;
-  padding: 20px;
-  background-color: whitesmoke;
-  border: 2px solid grey;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilo do formulário de laboratório */
-.cultura-form {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Estilo das linhas do formulário */
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Grupo de campos do formulário, ajusta o tamanho das colunas */
-.form-group {
-  flex: 1 1 150px;
-  min-width: 150px;
-}
-
-/* Grupo de botões, alinha os botões ao final */
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-/* Container de botões, alinha o texto à esquerda */
-.button-container {
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-/* Estilo das linhas da lista de usuários */
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-  position: relative;
-}
-
-/* Linha dos usuários, separadores entre colunas */
-.user-info>div {
-  position: relative;
-  padding-right: 10px;
-}
-
-.user-info>div:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: grey;
-}
-
-/* Botões estilizados para ações de formulário e lista */
-.btn-submit,
-.btn-edit,
-.btn-delete,
-.btn-cancel,
-.btn-back {
-  padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-right: 5px;
-}
-
-/* Estilo dos botões de submit, back e edit */
-.btn-submit,
-.btn-back,
-.btn-edit {
-  background-color: #237837;
-  color: white;
-}
-
-.btn-submit:hover,
-.btn-back:hover,
-.btn-edit:hover {
-  background-color: #218838;
-}
-
-/* Estilo do botão de delete */
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-}
-
-/* Estilo do botão de cancel */
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-/* Estilo das labels dos campos do formulário */
-.form-label {
-  text-align: left;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-</style>

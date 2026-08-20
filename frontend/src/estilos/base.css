@@ -1,0 +1,258 @@
+/* =========================================================================
+   Estilo base das telas.
+   =========================================================================
+
+   Antes cada tela carregava o próprio <style scoped> com praticamente as
+   mesmas regras — cerca de 1.200 linhas repetidas em 12 arquivos. O resultado
+   era divergência: o botão de enviar era verde em sete telas e cinza em duas,
+   "voltar" se chamava btn-back em umas e btn-cancel em outra, e o formulário
+   tinha sete nomes de classe diferentes para a mesma coisa.
+
+   Aqui ficam os tokens e as classes compartilhadas. Cada tela mantém no seu
+   <style scoped> apenas o que é realmente particular dela.
+
+   VOCABULÁRIO
+     .form-container    caixa que envolve um formulário
+     .tela-form         o <form> em si (empilha os campos)
+     .lista-container   caixa que envolve uma listagem
+     .lista-cabecalho   linha de títulos da listagem
+     .lista-linha       linha de dados da listagem
+     .button-group      botões do formulário (alinhados à direita)
+     .button-container  botão de ação acima da lista (à esquerda)
+     .btn-submit        ação principal (verde)
+     .btn-back          ação secundária / voltar (cinza)
+     .btn-edit          ícone de edição na linha
+     .btn-delete        ícone de exclusão na linha
+     .btn-detalhe       ícone de detalhe na linha
+   ========================================================================= */
+
+:root {
+  /* Cores. Os valores vieram do que já predominava nas telas, para o sistema
+     continuar com a mesma identidade — o que muda é a consistência. */
+  --cor-primaria: #237837;
+  --cor-primaria-hover: #1b5c2a;
+  --cor-perigo: #dc3545;
+  --cor-perigo-hover: #c82333;
+  --cor-secundaria: #6c757d;
+  --cor-secundaria-hover: #5a6268;
+
+  --cor-texto: #2c3e50;
+  --cor-texto-suave: #6c757d;
+  --cor-fundo-caixa: whitesmoke;
+  --cor-borda: #adb5bd;
+  --cor-borda-suave: #dee2e6;
+
+  --raio: 10px;
+  --raio-pequeno: 4px;
+  --espaco: 20px;
+  --sombra: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ------------------------------------------------------------------ caixas */
+
+.form-container,
+.lista-container {
+  width: 100%;
+  padding: var(--espaco);
+  margin-bottom: var(--espaco);
+  background-color: var(--cor-fundo-caixa);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+/* Formulários longos (a análise de solo tem 20 campos) não devem esticar até
+   a borda da tela: linha muito larga é difícil de acompanhar. */
+.form-container {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tela-form {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+/* -------------------------------------------------------------- formulário */
+
+.tela-form .mb-3,
+.form-container .mb-3 {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  color: var(--cor-texto);
+  text-align: left;
+}
+
+/* Alguns campos usam .form-control (Bootstrap) e outros não. Esta regra
+   uniformiza a aparência dos dois casos. */
+.tela-form input,
+.tela-form select,
+.tela-form textarea,
+.form-container input,
+.form-container select,
+.form-container textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.95rem;
+  background-color: #fff;
+  color: var(--cor-texto);
+}
+
+.tela-form input:focus,
+.tela-form select:focus,
+.form-container input:focus,
+.form-container select:focus {
+  outline: none;
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 2px rgba(35, 120, 55, 0.15);
+}
+
+.tela-form input:disabled,
+.tela-form select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.tela-form small,
+.form-container small,
+.text-muted {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+}
+
+/* ---------------------------------------------------------------- listagem */
+
+.lista-cabecalho {
+  font-weight: 600;
+  padding: 10px 0;
+  border-bottom: 2px solid var(--cor-borda);
+  color: var(--cor-texto);
+}
+
+.lista-linha {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--cor-borda-suave);
+}
+
+.lista-linha:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* ----------------------------------------------------------------- botões */
+
+.btn-submit,
+.btn-back {
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--raio-pequeno);
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #fff;
+  transition: background-color 0.15s ease;
+}
+
+.btn-submit {
+  background-color: var(--cor-primaria);
+}
+
+.btn-submit:hover {
+  background-color: var(--cor-primaria-hover);
+}
+
+.btn-back {
+  background-color: var(--cor-secundaria);
+}
+
+.btn-back:hover {
+  background-color: var(--cor-secundaria-hover);
+}
+
+.btn-edit,
+.btn-delete,
+.btn-detalhe {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.05rem;
+  padding: 2px 6px;
+  border-radius: var(--raio-pequeno);
+}
+
+.btn-edit:hover {
+  background-color: rgba(35, 120, 55, 0.12);
+}
+
+.btn-delete:hover {
+  background-color: rgba(220, 53, 69, 0.12);
+}
+
+.btn-detalhe:hover {
+  background-color: rgba(31, 97, 141, 0.12);
+}
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: var(--espaco);
+}
+
+.button-container {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+/* ----------------------------------------------------------------- títulos */
+
+.titulo-tela {
+  margin: 1.5rem 0 1rem;
+  font-size: 1.6rem;
+  color: var(--cor-texto);
+}
+
+/* ---------------------------------------------------------------- avisos */
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #842029;
+  padding: 10px 12px;
+  border-radius: var(--raio-pequeno);
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------- responsivo */
+
+@media (max-width: 768px) {
+  .lista-linha,
+  .lista-cabecalho {
+    flex-wrap: wrap;
+  }
+
+  .form-container,
+  .lista-container {
+    padding: 14px;
+  }
+
+  .button-group {
+    flex-direction: column-reverse;
+  }
+
+  .button-group .btn-submit,
+  .button-group .btn-back {
+    width: 100%;
+  }
+}

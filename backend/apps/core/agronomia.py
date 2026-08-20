@@ -196,9 +196,16 @@ def diagnostico(analise):
 # boletins da Embrapa Cerrados usam a mesma equacao, variando os parametros
 # (V2 por cultura, coeficientes do metodo do aluminio).
 #
-# O que este modulo NAO faz: doses de N, P e K. Elas nao saem de formula -
-# vem de tabelas de calibracao empirica, por regiao e cultura. Inventa-las
-# produziria numeros com aparencia de autoridade e sem lastro.
+# Sobre as doses de adubo (secao ADUBACAO, mais abaixo): elas saem de formula
+# aqui, mas as formulas dependem de parametros por cultura - saturacao de K
+# desejada, teor de fosforo alvo, fator de fixacao. Esses parametros vem da
+# fonte de referencia adotada e sao cadastrados na Cultura. O modulo aplica;
+# nao arbitra valores.
+#
+# Excecao declarada: o NITROGENIO nao e derivavel da analise de solo. O N
+# disponivel depende da mineralizacao da materia organica, do historico da
+# area e da produtividade esperada - nenhum metodo o calcula a partir de um
+# teor medido no laudo. Ele entra como dose cadastrada na cultura.
 # ==========================================================================
 
 # Camada de referencia da calagem, em cm. As formulas abaixo dao a dose para
@@ -346,4 +353,205 @@ def recomendacao_calagem(analise, v2=None, prnt=None):
         'dose_corretivo_t_ha': _arredonda(dose_corretivo(nc, prnt)),
         'tipo_indicado': tipo_calcario_indicado(ca, mg),
         'camada_cm': CAMADA_CALAGEM_CM,
+    }
+
+
+# ==========================================================================
+# ADUBACAO
+#
+# As conversoes abaixo saem da estequiometria, nao de tabela - por isso podem
+# ser conferidas com papel e lapis:
+#
+#   Volume de 1 ha na camada de 0-20 cm:
+#       10.000 m2 x 0,20 m = 2.000 m3 = 2.000.000 dm3
+#
+#   Potassio: 1 cmolc/dm3 de K = 0,01 mol x 39,098 g = 0,39098 g/dm3
+#       0,39098 g/dm3 x 2.000.000 dm3 = 781.960 g = 782 kg K/ha
+#       K -> K2O: 94,196 / 78,196 = 1,2046
+#       Logo 1 cmolc/dm3 de K equivale a ~942 kg de K2O por hectare.
+#
+#   Fosforo: 1 mg/dm3 x 2.000.000 dm3 = 2.000.000 mg = 2 kg P/ha
+#       P -> P2O5: 141,94 / 61,948 = 2,2914
+#       Mas o solo FIXA fosforo, e quanto mais argiloso mais fixa. Por isso a
+#       dose usa um fator de fixacao cadastrado por cultura, e nao a conversao
+#       estequiometrica pura.
+#
+#   Enxofre: mesma logica de volume; 1 mg/dm3 = 2 kg S/ha.
+# ==========================================================================
+
+# Massa de solo/volume considerado: 1 ha na camada de 0-20 cm, em dm3.
+VOLUME_HECTARE_20CM = Decimal('2000000')
+
+CMOLC_K_PARA_KG_K2O = Decimal('942')   # 1 cmolc/dm3 de K -> kg de K2O/ha
+MG_DM3_PARA_KG_HA = Decimal('2')       # 1 mg/dm3 -> kg/ha na camada de 20 cm
+TEOR_K2O_NO_KCL = Decimal('0.60')      # cloreto de potassio comercial: 60% K2O
+
+
+def necessidade_potassio(ca, mg, k, na, h, al, saturacao_k_desejada):
+    """
+    Dose de K2O, em kg/ha, pelo metodo da saturacao por potassio.
+
+    O alvo e uma participacao de K na CTC (tipicamente 3% a 5%). A dose e a
+    diferenca entre o K que essa participacao exige e o K que o solo ja tem.
+
+    Devolve None sem o parametro, e zero quando o solo ja atingiu o alvo.
+    """
+    if saturacao_k_desejada is None:
+        return None
+
+    t = ctc_potencial(ca, mg, k, na, h, al)
+    if t == 0:
+        return None
+
+    k_alvo = t * _d(saturacao_k_desejada) / 100          # cmolc/dm3
+    falta = k_alvo - _d(k)
+    if falta <= 0:
+        return Decimal('0')
+    return falta * CMOLC_K_PARA_KG_K2O
+
+
+def dose_kcl(k2o_kg_ha):
+    """Converte a necessidade de K2O na quantidade de cloreto de potassio."""
+    if k2o_kg_ha is None:
+        return None
+    return _d(k2o_kg_ha) / TEOR_K2O_NO_KCL
+
+
+def necessidade_fosforo(p_atual, p_desejado, fator_fixacao):
+    """
+    Dose de P2O5, em kg/ha, pelo metodo de elevacao do teor.
+
+    dose = (P desejado - P atual) x fator de fixacao
+
+    O fator representa quanto de P2O5 e preciso aplicar para elevar 1 mg/dm3
+    no solo. Nao e a conversao estequiometrica (que daria 4,58): o solo fixa
+    parte do fosforo, e quanto mais argiloso, mais fixa. Por isso o valor e
+    cadastrado, e nao embutido aqui.
+    """
+    if p_desejado is None or fator_fixacao is None:
+        return None
+    falta = _d(p_desejado) - _d(p_atual)
+    if falta <= 0:
+        return Decimal('0')
+    return falta * _d(fator_fixacao)
+
+
+def necessidade_enxofre(s_atual, s_desejado):
+    """Dose de S, em kg/ha, para elevar o teor ate o alvo."""
+    if s_desejado is None:
+        return None
+    falta = _d(s_desejado) - _d(s_atual)
+    if falta <= 0:
+        return Decimal('0')
+    return falta * MG_DM3_PARA_KG_HA
+
+
+def necessidade_gesso(argila_pct, saturacao_al, ca):
+    """
+    Dose de gesso agricola, em kg/ha.
+
+    Criterio de uso corrente: indica-se gessagem quando ha toxidez por
+    aluminio (m% acima de 20) ou calcio escasso (abaixo de 0,5 cmolc/dm3).
+    A dose usa o teor de argila, porque a retencao de sulfato acompanha a
+    fracao argilosa:  dose = 50 x argila(%)
+
+    Devolve zero quando nao ha indicacao - e uma resposta, nao uma omissao.
+    """
+    if argila_pct is None:
+        return None
+
+    indicado = (saturacao_al is not None and saturacao_al > 20) or _d(ca) < Decimal('0.5')
+    if not indicado:
+        return Decimal('0')
+    return Decimal('50') * _d(argila_pct)
+
+
+def recomendacao_completa(analise, cultura=None, calcario=None):
+    """
+    Monta a recomendacao inteira de uma analise: todos os campos calculados.
+
+    'cultura' fornece os parametros (V2, saturacao de K, fosforo alvo, fator de
+    fixacao, N e S). 'calcario' fornece o PRNT. Faltando qualquer um, o campo
+    correspondente sai vazio e a chave 'pendencias' diz o que preencher - em
+    vez de devolver um numero sem lastro.
+
+    A calagem sai num unico campo, o do tipo indicado pela relacao Ca:Mg. Os
+    outros dois ficam zerados: recomendar tres corretivos ao mesmo tempo para
+    a mesma area nao faria sentido agronomico.
+    """
+    cultura = cultura or getattr(analise, 'cultura', None)
+    ca, mg, k, na = analise.ca, analise.mg, analise.k, analise.na
+    h, al = analise.h, analise.al
+
+    pendencias = []
+
+    def parametro(nome, mensagem):
+        valor = getattr(cultura, nome, None) if cultura else None
+        if valor is None:
+            pendencias.append(mensagem)
+        return valor
+
+    nome_cultura = getattr(cultura, 'nome', 'a cultura') if cultura else 'a cultura'
+
+    # ------------------------------------------------------------ calagem
+    v2 = parametro('saturacao_bases_desejada',
+                   f'{nome_cultura}: falta a saturação por bases desejada (V₂).')
+    nc = necessidade_calagem_por_saturacao(ca, mg, k, na, h, al, v2)
+    metodo = 'Saturação por bases'
+    if nc is None:
+        # Sem V2 o metodo do aluminio ainda funciona: nao depende da cultura.
+        nc = necessidade_calagem_por_aluminio(ca, mg, al)
+        metodo = 'Alumínio e Ca+Mg'
+
+    prnt = getattr(calcario, 'prnt', None) if calcario else None
+    if prnt is None:
+        pendencias.append('Nenhum calcário cadastrado do tipo indicado.')
+    dose = dose_corretivo(nc, prnt)
+
+    tipo = tipo_calcario_indicado(ca, mg)
+    calcarios = {'calcitico': Decimal('0'), 'magnesiano': Decimal('0'), 'dolomitico': Decimal('0')}
+    calcarios[tipo] = _arredonda(dose) if dose is not None else Decimal('0')
+
+    # ----------------------------------------------------------- gessagem
+    normalizada = normalizar_granulometria(analise.areia, analise.silte, analise.argila)
+    argila_pct = normalizada[2] if normalizada else None
+    m = saturacao_por_aluminio(ca, mg, k, na, al)
+    gesso = necessidade_gesso(argila_pct, m, ca)
+
+    # --------------------------------------------------------------- NPK+S
+    sat_k = parametro('saturacao_k_desejada',
+                      f'{nome_cultura}: falta a saturação de K desejada.')
+    k2o = necessidade_potassio(ca, mg, k, na, h, al, sat_k)
+    kcl = dose_kcl(k2o)
+
+    p_alvo = parametro('fosforo_desejado', f'{nome_cultura}: falta o fósforo desejado.')
+    fator = parametro('fator_fixacao_fosforo',
+                      f'{nome_cultura}: falta o fator de fixação de fósforo.')
+    p2o5 = necessidade_fosforo(analise.p, p_alvo, fator)
+
+    n = parametro('nitrogenio_recomendado',
+                  f'{nome_cultura}: falta a dose de nitrogênio. '
+                  'O N não é calculável a partir da análise de solo.')
+
+    s_alvo = parametro('enxofre_desejado', f'{nome_cultura}: falta o enxofre desejado.')
+    enxofre = necessidade_enxofre(analise.s, s_alvo)
+
+    return {
+        'camada_correcao': f'0-{CAMADA_CALAGEM_CM} cm',
+        'calcario_calcitico': calcarios['calcitico'],
+        'calcario_dolomitico': calcarios['dolomitico'],
+        'calcario_magnesiano': calcarios['magnesiano'],
+        'gesso': _arredonda(gesso),
+        'kcl': _arredonda(kcl),
+        'p2o5': _arredonda(p2o5),
+        'n': _arredonda(_d(n)) if n is not None else None,
+        's': _arredonda(enxofre),
+        # Contexto do calculo, para a tela explicar de onde veio cada numero.
+        'metodo_calagem': metodo,
+        'tipo_calcario': tipo,
+        'necessidade_calagem_t_ha': _arredonda(nc),
+        'v2_utilizado': _arredonda(_d(v2), 1) if v2 is not None else None,
+        'prnt_utilizado': _arredonda(_d(prnt), 1) if prnt is not None else None,
+        'k2o_kg_ha': _arredonda(k2o),
+        'pendencias': pendencias,
     }
