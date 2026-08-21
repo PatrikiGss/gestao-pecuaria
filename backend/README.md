@@ -53,8 +53,16 @@ venv\Scripts\Activate.ps1
 > mudar de diretório, apague e recrie.
 
 > **`python -m venv` falha com `WinError 4551`?** É o Smart App Control do
-> Windows bloqueando a cópia do `python.exe`. Existe um caminho alternativo
-> sem virtualenv, com o atalho `manage.ps1` — veja `ERROS_CONHECIDOS.md`.
+> Windows bloqueando a cópia do `python.exe`. O caminho alternativo é instalar
+> as dependências numa pasta e apontar o `PYTHONPATH` para ela, sem virtualenv:
+>
+> ```bash
+> py -3.12 -m pip install --target libs -r requirements-dev.txt
+> ```
+>
+> Depois, com `$env:PYTHONPATH = "libs"` definido, o `manage.py` roda pelo
+> interpretador do sistema. Veja `ERROS_CONHECIDOS.md` para o que já foi
+> testado.
 
 ### 2. Dependências
 
@@ -185,10 +193,18 @@ Campos extras: `nome`, `cpf` (único), `telefone` e `creditos`.
 CRUD completo (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) via router do DRF:
 
 `/usuarios/` · `/produtores/` · `/propriedades/` · `/glebas/` ·
-`/laboratorios/` · `/culturas/` · `/analisesolo/` · `/recomendacoes/`
+`/laboratorios/` · `/culturas/` · `/calcarios/` · `/analisesolo/` ·
+`/recomendacoes/`
 
 `/glebas/` aceita `?propriedade=<id>` para listar apenas as glebas de uma
 propriedade — é assim que a tela de análise monta a seleção em cascata.
+
+`/analisesolo/` aceita `?propriedade=`, `?gleba=`, `?cultura=`, `?data_apos=`
+e `?data_antes=`, que é o que alimenta a barra de filtros da tela.
+
+Exclusão é protegida: apagar laboratório, cultura ou gleba que tenha análise
+vinculada devolve **409** com a contagem do que está no caminho, em vez de
+levar o histórico junto.
 
 Todos exigem o header `Authorization: Bearer <access_token>` e retornam apenas
 os registros do usuário autenticado.
@@ -198,9 +214,17 @@ os registros do usuário autenticado.
 | Token | Validade |
 |---|---|
 | `access` | 60 minutos |
-| `refresh` | 1 dia |
+| `refresh` | 2 horas |
 
 Rotação automática ativada, com o token antigo indo para a blacklist.
+
+O refresh valia 1 dia, e era por isso que a sessão nunca expirava: o `access`
+vencia e a renovação seguia em silêncio pelo resto do dia. São 2h e não 1h
+porque a rotação renova a contagem a cada chamada — a folga cobre quem fica
+muito tempo numa tela sem chamar a API.
+
+A regra de "sair após 1h parado" é aplicada no navegador
+(`frontend/src/inatividade.js`): só o cliente sabe se houve interação.
 
 ---
 

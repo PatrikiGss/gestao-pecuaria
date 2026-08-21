@@ -3,6 +3,10 @@
 # entao nao vai para o repositorio publico.
 ERROS_CONHECIDOS.md
 context.md
+
+# Guia pratico de onde mexer em cada coisa. Companheiro do context.md:
+# aquele diz POR QUE esta assim, este diz ONDE mudar.
+GUIA_DO_CODIGO.md
 .claude
 Relatorio_Correcoes.docx
 # Sistema operacional
