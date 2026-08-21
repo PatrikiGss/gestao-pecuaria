@@ -160,7 +160,58 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class ProdutorSerializer(serializers.ModelSerializer):
+class CamposUnicosPorUsuarioMixin:
+    """
+    Recusa, com erro de validacao, valor ja usado pela mesma conta.
+
+    POR QUE A RESTRICAO DO BANCO NAO BASTA
+
+    Os models declaram a unicidade com UniqueConstraint composta com o dono
+    (ex.: usuario + cpf). O DRF gera validador automatico a partir de
+    'unique_together', mas NAO a partir de UniqueConstraint - e mesmo que
+    gerasse, aqui nao daria: 'usuario' e read_only, entao nao esta nos dados de
+    entrada que o validador inspecionaria.
+
+    Sem esta checagem, a violacao so aparecia ao gravar, como IntegrityError -
+    ou seja, HTTP 500 com traceback no lugar de "este CPF ja esta cadastrado".
+    Um teste da suite pegou exatamente isso ao cadastrar dois produtores com o
+    mesmo CPF na mesma conta.
+
+    Cada subclasse declara 'campos_unicos_por_usuario' com os campos a checar.
+    """
+
+    campos_unicos_por_usuario = ()
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return attrs
+
+        erros = {}
+        for campo in self.campos_unicos_por_usuario:
+            valor = attrs.get(campo, getattr(self.instance, campo, None))
+            if valor in (None, ''):
+                continue
+
+            existentes = self.Meta.model.objects.filter(
+                usuario=request.user, **{f'{campo}__iexact': valor}
+            )
+            if self.instance is not None:
+                existentes = existentes.exclude(pk=self.instance.pk)
+            if existentes.exists():
+                rotulo = self.Meta.model._meta.get_field(campo).verbose_name
+                erros[campo] = f'Já existe um registro seu com este {rotulo}.'
+
+        if erros:
+            raise serializers.ValidationError(erros)
+        return attrs
+
+
+class ProdutorSerializer(CamposUnicosPorUsuarioMixin, serializers.ModelSerializer):
+    # Espelha as UniqueConstraint do model (usuario+cpf, usuario+email).
+    campos_unicos_por_usuario = ('cpf', 'email')
     usuario = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -178,7 +229,9 @@ class PropriedadeSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
         fields = '__all__'
 
 
-class LaboratorioSerializer(serializers.ModelSerializer):
+class LaboratorioSerializer(CamposUnicosPorUsuarioMixin, serializers.ModelSerializer):
+    # Espelha a UniqueConstraint do model (usuario+email).
+    campos_unicos_por_usuario = ('email',)
     usuario = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:

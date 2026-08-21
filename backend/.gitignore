@@ -19,3 +19,6 @@ db.sqlite3
 
 # ATENCAO: migrations/ NAO deve ser ignorado.
 # As migracoes fazem parte do codigo e precisam ser versionadas.
+
+# pytest
+.pytest_cache/
