@@ -1,12 +1,12 @@
 """
 Gera as duas variantes da imagem de fundo a partir de uma foto de origem.
 
-    python scripts/gerar-fundo.py "../backend/analise solo.jpg"
+    python scripts/gerar-fundo.py caminho/da/foto-original.jpg
 
 Sai em src/assets/:
 
-    solo.webp          telas internas — desfocada, 900px
-    solo-nitido.webp   login          — nitida, tamanho nativo
+    fundo-telas.webp   telas internas — desfocada, 900px
+    fundo-login.webp   login          — nitida, tamanho nativo
 
 POR QUE DUAS
 
@@ -16,8 +16,11 @@ hexagonos) que atrapalha ler texto por cima. No login nao ha texto sobre o
 fundo — o cartao e opaco — entao a foto aparece inteira.
 
 Efeito colateral util: desfoque destroi detalhe, e detalhe e o que ocupa bytes.
-A variante desfocada cabe em ~6 KB, pequena o bastante para o webpack embutir
-como data URI no CSS, o que elimina uma requisicao.
+A variante desfocada fica bem menor que a nitida. Se cair abaixo de ~8 KB, o
+webpack a embute como data URI no CSS e ainda elimina uma requisicao.
+
+Se a sua foto das telas internas JA vier desfocada, nao passe por aqui: salve
+direto como src/assets/fundo-telas.webp. Desfocar duas vezes so borra mais.
 
 As imagens vao para src/assets/ e NAO para public/. O base.css passa pelo
 webpack, e ali um url('/img/...') e tratado como caminho de modulo, nao como
@@ -53,14 +56,14 @@ def gerar(origem):
     altura = round(LARGURA_SUAVE * base.size[1] / base.size[0])
     suave = base.filter(ImageFilter.GaussianBlur(RAIO_DESFOQUE))
     suave = suave.resize((LARGURA_SUAVE, altura), Image.LANCZOS)
-    suave.save(os.path.join(DESTINO, 'solo.webp'), 'WEBP',
+    suave.save(os.path.join(DESTINO, 'fundo-telas.webp'), 'WEBP',
                quality=QUALIDADE_SUAVE, method=6)
 
     # Sem redimensionar: ampliar nao acrescenta informacao, so peso.
-    base.save(os.path.join(DESTINO, 'solo-nitido.webp'), 'WEBP',
+    base.save(os.path.join(DESTINO, 'fundo-login.webp'), 'WEBP',
               quality=QUALIDADE_NITIDA, method=6)
 
-    for nome in ('solo.webp', 'solo-nitido.webp'):
+    for nome in ('fundo-telas.webp', 'fundo-login.webp'):
         caminho = os.path.join(DESTINO, nome)
         im = Image.open(caminho)
         print(f'{nome:18s} {im.size[0]}x{im.size[1]:<5d} '

@@ -58,7 +58,7 @@
 
   /* Fundo fotográfico. Veja o bloco FUNDO logo abaixo. */
   --cor-solo-base: #52402c;
-  --foto-fundo: url("C:\Users\patri\OneDrive\Desktop\projects\gestão_pecuaria\gestao-pecuaria\backend\background_desfocado.jpeg");
+  --foto-fundo: url('../assets/fundo-telas.webp');
 }
 
 /* =========================================================================
@@ -77,34 +77,51 @@
    atravessa o texto e cansa a leitura. Por isso a imagem precisa entrar
    desfocada, e por isso as caixas ficam opacas.
 
-   SÃO DUAS VARIANTES DA MESMA FOTO, e a razão é a diferença entre as telas:
+   SÃO DUAS IMAGENS, e a razão é a diferença entre as telas:
 
-     src/assets/solo.webp         telas internas — DESFOCADA (900px, ~6 KB)
-     src/assets/solo-nitido.webp  login          — nítida    (678px, ~48 KB)
+     src/assets/fundo-telas.webp  telas internas — DESFOCADA
+     src/assets/fundo-login.webp  login          — nítida
 
    Nas telas internas o título fica DIRETO sobre o fundo, então a imagem entra
    desfocada: o desfoque apaga o grão do solo e as letras dos hexágonos (N, P,
    K...), que são justamente o que atrapalha ler texto por cima. No login não
    há texto sobre o fundo — o cartão é opaco — então a foto aparece inteira.
 
-   Bônus do desfoque: como ele destrói detalhe, a imagem comprime muito melhor
-   e cabe em 6 KB. Isso conta, porque o plugin de PWA precacheia o build.
+   Bônus do desfoque: como ele destrói detalhe, e detalhe é o que ocupa bytes,
+   a versão desfocada comprime bem melhor que a nítida. Isso conta, porque o
+   plugin de PWA precacheia o build inteiro.
 
-   As imagens ficam em src/assets/ e NÃO em public/. Este arquivo passa pelo
-   webpack, e ali um url('/img/...') é tratado como caminho de módulo, não
-   como URL — o build quebra com 'Cannot find module'. Em src/assets/ o
-   caminho é relativo, o webpack resolve, e as imagens ainda ganham hash de
-   cache no nome.
+   PARA TROCAR AS FOTOS
 
-   As duas são geradas por 'scripts/gerar-fundo.py', a partir de uma foto de
-   origem. Para trocar a imagem de fundo, rode:
+   Coloque os arquivos em src/assets/ e aponte para eles com caminho RELATIVO,
+   a partir desta pasta (src/estilos/):
+
+       url('../assets/fundo-telas.webp')          CERTO
+       url('/img/fundo-telas.webp')               quebra o build
+       url('C:\\Users\\...\\backend\\foto.webp')  quebra no deploy
+
+   As três formas funcionam no navegador, mas só a primeira sobrevive ao
+   build. Este arquivo passa pelo webpack, que reescreve cada url() em tempo
+   de compilação: ele resolve o caminho relativo, copia a imagem para dist/ e
+   troca a URL por uma com hash de cache. Um caminho absoluto de disco ele não
+   resolve — deixa passar literalmente, e no servidor não existe 'C:\\Users'.
+   Um caminho que começa com '/' ele trata como nome de módulo e o build morre
+   com 'Cannot find module'.
+
+   Por isso as imagens ficam em src/assets/ e NÃO em public/: o que está em
+   public/ é copiado sem passar pelo webpack, e daqui não há como referenciá-lo
+   de forma que o build aceite.
+
+   Para gerar as duas variantes a partir de uma foto original (não desfocada):
 
        python scripts/gerar-fundo.py caminho/da/foto.jpg
 
-   Não aponte o CSS direto para um JPEG grande: além do peso, a variante das
-   telas internas precisa do desfoque.
+   Se a sua imagem das telas internas já vier desfocada, é só salvá-la como
+   src/assets/fundo-telas.webp direto, sem passar pelo script — desfocar duas
+   vezes só borra mais.
 
-   Se um dia usar uma foto nítida nas telas internas, suba o véu para 0.88.
+   Se um dia usar uma foto NÃO desfocada nas telas internas, suba o véu para
+   0.88, senão o título da tela briga com a textura.
    ========================================================================= */
 
 html {
@@ -128,7 +145,7 @@ body {
    do cartão. */
 .app-raiz.fundo-destaque {
   --veu: rgba(0, 0, 0, 0.30);
-  --foto-fundo: url("C:\Users\patri\OneDrive\Desktop\projects\gestão_pecuaria\gestao-pecuaria\backend\tela_login_1080p.webp");
+  --foto-fundo: url('../assets/fundo-login.webp');
 }
 
 /* O cartão do login se centraliza na área livre entre a navbar e o rodapé.
