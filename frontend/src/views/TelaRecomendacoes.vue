@@ -173,7 +173,9 @@ export default {
         analise_solo: '',
       },
       previa: null,
-      analisesolo: [],
+      // Havia aqui um 'analisesolo: []' sem nenhum uso, convivendo com o
+      // 'analise_solo' logo abaixo — dois nomes quase iguais para a mesma
+      // ideia, um deles morto.
       analise_solo: [],
       propriedades: [],
       propriedadeSelecionada: '',
@@ -221,15 +223,12 @@ export default {
     },
     // Exigido pelo mixin listaPaginada: como recarregar após trocar de página.
     recarregar() {
-      this.fetchRecomendação();
+      this.fetchRecomendacoes();
     },
     toggleForm() {
-      this.showForm = !this.showForm; 
-      this.clearForm(); 
+      this.showForm = !this.showForm;
+      this.clearForm();
     },
-
-
-
 
     async fetchPropriedades() {
       try {
@@ -253,16 +252,16 @@ export default {
         );
         this.analise_solo = extrairLista(response);
       } catch (error) {
-        console.error('Erro ao buscar análises de solo: ', error);
+        console.error('Erro ao buscar análises de solo:', error);
       }
     },
 
-    async fetchRecomendação() {
+    async fetchRecomendacoes() {
       try {
         const response = await api.get(`/recomendacoes/?page=${this.pagina}`);
                 this.recomendacoes = this.aplicarPaginacao(response)
       } catch (error) {
-        console.error('erro ao buscae recomendações: ', error);
+        console.error('Erro ao buscar recomendações:', error);
       }
     },
     async submitForm() {
@@ -270,53 +269,56 @@ export default {
         if (this.editingRec) {
           const response = await api.put(`/recomendacoes/${this.editingRec}/`, this.formData);
           if (response.status === 200) {
-            sucesso('recomendação atualizada com sucesso!');
+            sucesso('Recomendação atualizada com sucesso!');
           } else {
-            erro('erro ao atualizar a recomendação.')
+            erro('Erro ao atualizar a recomendação.');
           }
         } else {
           const response = await api.post('/recomendacoes/', this.formData);
           if (response.status === 201) {
-            sucesso(' recomendação foi cadastrada com sucesso!');
+            sucesso('Recomendação cadastrada com sucesso!');
           } else {
-            aviso('recomendação nao pode ser cadastrada.');
+            aviso('A recomendação não pôde ser cadastrada.');
           }
         }
-        this.fetchRecomendação();
+        this.fetchRecomendacoes();
         this.showForm = false;
       } catch (error) {
-        console.error('erro ao enviuar requisição:', error);
-        erro('erro ao enviar requisauição. verifique o console')
+        // Esta tela era a única que ainda descartava a resposta da API e
+        // mandava o usuário "verificar o console". O erros.js existe
+        // justamente para traduzir o corpo detalhado por campo que a API já
+        // devolve; as outras telas o usam desde então.
+        console.error('Erro ao enviar requisição:', error);
+        erro(mensagemDeErro(error));
       }
     },
 
-    editRec(recomendacoes) {
-      this.editingRec = recomendacoes.id
-      this.formData = { ...recomendacoes }; 
+    editRec(recomendacao) {
+      this.editingRec = recomendacao.id;
+      // Só a análise: as doses são recalculadas pelo servidor a cada gravação
+      // (todas estão em read_only_fields), então copiar o objeto inteiro só
+      // devolvia à API valores que ela ia sobrescrever.
+      this.formData = { analise_solo: recomendacao.analise_solo };
       this.showForm = true;
     },
     clearForm() {
-      this.formData = {
-        analisesolo: null,
-        camada_correcao: '',
-        calcario_calcitico: '',
-        calcario_dolomitico: '',
-        calcario_magnesiano: '',
-        gesso: '',
-        kcl: '',
-        p2o5: '',
-        n: '',
-        s: '',
-      };
+      // Só 'analise_solo' precisa ser limpo: as doses são calculadas pelo
+      // servidor e estão todas em read_only_fields, então nunca foram parte
+      // deste formulário. A chave gravada aqui era 'analisesolo', com o nome
+      // errado — limpava um campo que não existe e deixava o de verdade
+      // intacto entre um cadastro e o seguinte.
+      this.formData = { analise_solo: '' };
+      this.previa = null;
+      this.propriedadeSelecionada = '';
       this.editingRec = null;
     },
     async deleteRec(id) {
-      if (await confirmar('tem certeza que deseja excluir esta recomendação?')) {
+      if (await confirmar('Tem certeza que deseja excluir esta recomendação?')) {
         try {
           const response = await api.delete(`/recomendacoes/${id}/`);
           if (response.status === 204) { 
             sucesso('Recomendação excluída com sucesso!');
-            this.fetchRecomendação();
+            this.fetchRecomendacoes();
           } else {
             erro('Erro ao tentar excluir a recomendação.');
           }
@@ -329,7 +331,7 @@ export default {
   },
   mounted() {
     this.fetchPropriedades();
-    this.fetchRecomendação();
+    this.fetchRecomendacoes();
   }
 };
 </script>

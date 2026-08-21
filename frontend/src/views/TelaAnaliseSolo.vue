@@ -193,44 +193,93 @@
         <div class="button-container">
           <button @click="toggleForm" class="btn-submit">Cadastrar nova análise de solo</button>
         </div>
+
+        <!-- Barra de filtros.
+             A API já filtrava por propriedade, gleba, cultura e intervalo de
+             datas (apps/core/filtros.py), mas nada disso tinha interface: com
+             o histórico paginado, achar a análise de uma gleba específica
+             exigia percorrer página por página. O filtro roda no SERVIDOR —
+             filtrar no cliente só esconderia linhas da página atual. -->
+        <div class="filtros">
+          <div class="filtro">
+            <label for="f-propriedade">Propriedade</label>
+            <select id="f-propriedade" v-model="filtros.propriedade">
+              <option value="">Todas</option>
+              <option v-for="p in propriedades" :key="p.id" :value="p.id">{{ p.nome }}</option>
+            </select>
+          </div>
+          <div class="filtro">
+            <label for="f-gleba">Gleba</label>
+            <select id="f-gleba" v-model="filtros.gleba" :disabled="!filtros.propriedade">
+              <option value="">{{ filtros.propriedade ? 'Todas' : 'Escolha a propriedade' }}</option>
+              <option v-for="g in glebasDoFiltro" :key="g.id" :value="g.id">{{ g.nome }}</option>
+            </select>
+          </div>
+          <div class="filtro">
+            <label for="f-cultura">Cultura</label>
+            <select id="f-cultura" v-model="filtros.cultura">
+              <option value="">Todas</option>
+              <option v-for="c in culturas" :key="c.id" :value="c.id">{{ c.nome }}</option>
+            </select>
+          </div>
+          <div class="filtro">
+            <label for="f-de">De</label>
+            <input id="f-de" type="date" v-model="filtros.data_apos" :max="hoje" />
+          </div>
+          <div class="filtro">
+            <label for="f-ate">Até</label>
+            <input id="f-ate" type="date" v-model="filtros.data_antes" :max="hoje" />
+          </div>
+          <div class="filtro filtro-acao">
+            <button type="button" class="btn-back" :disabled="!temFiltro" @click="limparFiltros">
+              Limpar
+            </button>
+          </div>
+        </div>
+        <p v-if="temFiltro" class="resumo-filtro">
+          {{ paginacao.total }}
+          {{ paginacao.total === 1 ? 'análise encontrada' : 'análises encontradas' }}
+          com os filtros aplicados.
+        </p>
         <div v-if="analisesSolo.length">
           <!-- Cabeçalho da tabela de analises -->
           <div class="row lista-cabecalho mb-2">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-2">laboratorio</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-2">propriedade</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-1">cultura</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-1">data</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-1">gleba</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-1">area</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-2">laudo</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-2">ação</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-2">Laboratório</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-2">Propriedade</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-1">Cultura</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-1">Data</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-1">Gleba</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-1">Área</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-2">Laudo</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-2">Ações</div>
           </div>
-          <!-- Loop para exibir cada analise de solo na tabela -->
+          <!-- Os nomes vêm prontos da API (laboratorio_nome, cultura_nome).
+               Antes eram resolvidos no cliente, o que exigia carregar as listas
+               inteiras de laboratórios e culturas só para traduzir ids — e
+               mostrava "Desconhecido" enquanto elas não chegavam. -->
           <div v-for="analisesolo in analisesSolo" :key="analisesolo.id" class="row lista-linha mb-2">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ getlaboratorioNome(analisesolo.laboratorio) }}</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ analisesolo.laboratorio_nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ analisesolo.propriedade_nome }}</div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ getculturaNome(analisesolo.cultura) }}</div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.cultura_nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.data }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.gleba_nome }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.area }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">{{ analisesolo.laudo }}</div>
             <div class="col-12 col-sm-6 col-md-4 col-lg-2">
-              <!-- Lista de Análises de Solo, oculta quando o formulário está ativo -->
               <button @click="startEditing(analisesolo)" class="btn-edit">🖊️</button>
               <button @click="deleteSolo(analisesolo.id)" class="btn-delete">🗑️</button>
               <button @click="viewDetails(analisesolo)" class="btn-detalhe" title="Ver detalhes">🔎</button>
             </div>
-            <!-- Exibe campos adicionais se 'vermaiscampos' da análise estiver ativado -->
-            <div v-if="analisesolo.vermaiscampos" class="extra-fields">
-              <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.ph_h2o }}</div>
-              <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.s }}</div>
-              <div class="col-12 col-sm-6 col-md-4 col-lg-1">{{ analisesolo.p }}</div>
-              <!-- Continue com os outros campos... -->
-            </div>
           </div>
         </div>
         <div v-else>
-          <p>Nenhuma análise de solo encontrada.</p>
+          <!-- Distingue "não há nada cadastrado" de "o filtro não achou nada":
+               sem isso, um filtro restritivo parece base vazia. -->
+          <p v-if="temFiltro">
+            Nenhuma análise corresponde aos filtros.
+            <button type="button" class="link-limpar" @click="limparFiltros">Limpar filtros</button>
+          </p>
+          <p v-else>Nenhuma análise de solo encontrada.</p>
         </div>
         <PaginacaoLista :pagina="pagina" :total-paginas="paginacao.totalPaginas"
           :total="paginacao.total" @mudar="irParaPagina" />
@@ -410,7 +459,7 @@ import { confirmar, erro, sucesso } from '@/notificacoes';
 import PaginacaoLista from '@/components/PaginacaoLista.vue';
 import listaPaginada from '@/mixins/listaPaginada';
 import { mensagemDeErro } from '@/erros';
-import { extrairLista, PARAMS_LISTA_COMPLETA } from '@/lista';
+import { extrairLista, PARAMS_LISTA_COMPLETA, TAMANHO_LISTA_COMPLETA } from '@/lista';
 
 export default {
   components: { PaginacaoLista },
@@ -447,12 +496,24 @@ export default {
       analisesSolo: [],
       laboratorios: [],
       propriedades: [],
-      glebas: [],
       culturas: [],
+      // Glebas da propriedade escolhida NO FORMULÁRIO, buscadas no servidor.
+      glebasDaPropriedade: [],
+      // Glebas da propriedade escolhida NO FILTRO. São listas separadas porque
+      // filtrar a listagem e preencher o formulário são escolhas independentes.
+      glebasDoFiltro: [],
       // Nao faz parte do formulario enviado: serve so para filtrar as glebas.
       propriedadeSelecionada: '',
+      // Estado dos filtros da listagem. Enviados como query string para a API.
+      filtros: {
+        propriedade: '',
+        gleba: '',
+        cultura: '',
+        data_apos: '',
+        data_antes: '',
+      },
       showForm: false,
-      showDetail: false, 
+      showDetail: false,
       editingSolo: false,
       selectedSolo: null,
     };
@@ -463,15 +524,30 @@ export default {
     hoje() {
       return new Date().toISOString().split('T')[0];
     },
-    glebasDaPropriedade() {
-      if (!this.propriedadeSelecionada) return [];
-      return this.glebas.filter(g => g.propriedade === Number(this.propriedadeSelecionada));
+    temFiltro() {
+      return Object.values(this.filtros).some(v => v !== '');
     },
   },
   watch: {
     propriedadeSelecionada(nova, antiga) {
       // Trocar de propriedade invalida a gleba escolhida, que pertence a outra.
       if (antiga !== '' && nova !== antiga) this.formData.gleba = '';
+      this.fetchGlebasDaPropriedade();
+    },
+    // Um watcher só para o objeto inteiro: qualquer filtro que mude recarrega
+    // a listagem a partir da primeira página. Sem voltar para a página 1, um
+    // filtro aplicado na página 5 mostraria "nenhum resultado" só porque o
+    // recorte novo tem menos páginas que isso.
+    filtros: {
+      deep: true,
+      handler() {
+        this.pagina = 1;
+        this.fetchAnaliseSolo();
+      },
+    },
+    'filtros.propriedade'(nova, antiga) {
+      if (antiga !== '' && nova !== antiga) this.filtros.gleba = '';
+      this.fetchGlebasDoFiltro();
     },
   },
   methods: {
@@ -497,11 +573,20 @@ export default {
       this.selectedSolo = analisesolo; 
       this.showDetail = true; // Exibe os detalhes
     },
+    limparFiltros() {
+      this.filtros = {
+        propriedade: '', gleba: '', cultura: '', data_apos: '', data_antes: '',
+      };
+    },
     // Alterna a exibição do formulário e reseta os dados
     toggleForm() {
       this.showForm = !this.showForm;
-      this.vermaiscampos = !this.vermaiscampos;
+      // Havia aqui um 'this.vermaiscampos = !this.vermaiscampos'. A propriedade
+      // não existia no data(), e o bloco .extra-fields do template lia
+      // 'analisesolo.vermaiscampos' — campo que a API nunca devolveu. O bloco
+      // nunca renderizou; os dois foram removidos.
       this.editingSolo = false;
+      this.propriedadeSelecionada = '';
       this.formData = {
         laboratorio: '',
         cultura: '',
@@ -530,21 +615,8 @@ export default {
         b: '',
       };
     },
-    // Obtém o nome do laboratório a partir do ID
-    getlaboratorioNome(laboratorioId) {
-      const laboratorio = this.laboratorios.find(u => u.id === laboratorioId);
-      return laboratorio ? laboratorio.nome : 'Desconhecido';
-    },
-    // Obtém o nome da propriedade a partir do ID
-    getpropriedadeNome(propriedadeId) {
-      const propriedade = this.propriedades.find(u => u.id === propriedadeId);
-      return propriedade ? propriedade.nome : 'Desconhecido';
-    },
-    // Obtém o nome da cultura a partir do ID
-    getculturaNome(culturaId) {
-      const cultura = this.culturas.find(u => u.id === culturaId);
-      return cultura ? cultura.nome : 'Desconhecido';
-    },
+    // Os três 'getXNome' que existiam aqui foram removidos: a API agora
+    // devolve laboratorio_nome, cultura_nome e propriedade_nome prontos.
     // Busca os dados dos laboratórios
     async fetchLaboratorios() {
       try {
@@ -563,14 +635,31 @@ export default {
         console.error('Erro ao buscar propriedades:', error);
       }
     },
-    // Busca as glebas de todas as propriedades do usuario
-    async fetchGlebas() {
+    // Busca as glebas de UMA propriedade, no servidor.
+    //
+    // Antes esta tela carregava TODAS as glebas do usuário (page_size=200) e
+    // filtrava por propriedade em JavaScript. Passando de 200 glebas, a lista
+    // vinha truncada sem nenhum aviso — e uma lista suspensa incompleta é o
+    // pior modo de falha possível: o usuário não vê o que falta, então não
+    // tem como desconfiar. A API já entende '?propriedade=', que é o que a
+    // tela de Recomendações sempre usou.
+    async buscarGlebas(propriedadeId) {
+      if (!propriedadeId) return [];
       try {
-        const response = await api.get('/glebas/' + PARAMS_LISTA_COMPLETA);
-        this.glebas = extrairLista(response)
+        const response = await api.get(
+          `/glebas/?propriedade=${propriedadeId}&page_size=${TAMANHO_LISTA_COMPLETA}`
+        );
+        return extrairLista(response);
       } catch (error) {
         console.error('Erro ao buscar glebas:', error);
+        return [];
       }
+    },
+    async fetchGlebasDaPropriedade() {
+      this.glebasDaPropriedade = await this.buscarGlebas(this.propriedadeSelecionada);
+    },
+    async fetchGlebasDoFiltro() {
+      this.glebasDoFiltro = await this.buscarGlebas(this.filtros.propriedade);
     },
     // Busca os dados das culturas
     async fetchCulturas() {
@@ -581,13 +670,21 @@ export default {
         console.error('Erro ao buscar culturas:', error);
       }
     },
-    // Busca as análises de solo
+    // Busca as análises de solo, aplicando os filtros no SERVIDOR.
+    //
+    // Os parâmetros vazios são descartados: '?cultura=' sem valor faria o
+    // django-filter recusar a requisição inteira em vez de ignorar o campo.
     async fetchAnaliseSolo() {
+      const params = new URLSearchParams({ page: this.pagina });
+      Object.entries(this.filtros).forEach(([campo, valor]) => {
+        if (valor !== '' && valor !== null) params.append(campo, valor);
+      });
       try {
-        const response = await api.get(`/analisesolo/?page=${this.pagina}`);
-                this.analisesSolo = this.aplicarPaginacao(response)
+        const response = await api.get(`/analisesolo/?${params.toString()}`);
+        this.analisesSolo = this.aplicarPaginacao(response);
       } catch (error) {
         console.error('Erro ao buscar análises de solo:', error);
+        erro(mensagemDeErro(error, 'Não foi possível carregar as análises.'));
       }
     },
     // Envia os dados do formulário
@@ -606,7 +703,12 @@ export default {
           const response = await api.post('/analisesolo/', this.formData);
           if (response.status === 201) {
             sucesso('Análise de solo cadastrada com sucesso!');
-            this.analisesSolo.push(response.data);
+            // Recarrega em vez de dar push na lista local: a listagem é
+            // ordenada por -data e paginada, então inserir no fim da página
+            // atual punha a análise nova fora de ordem e deixava o 'count' da
+            // paginação defasado. As outras telas já recarregavam.
+            this.pagina = 1;
+            this.fetchAnaliseSolo();
             this.toggleForm();
           } else {
             erro('Erro ao cadastrar análise de solo. Tente novamente mais tarde.');
@@ -622,7 +724,13 @@ export default {
       this.formData = { ...analisesolo };
       // A analise nao guarda mais a propriedade; ela vem por leitura junto
       // da resposta e serve para reabrir o select em cascata no ponto certo.
+      // O watcher de 'propriedadeSelecionada' dispara a busca das glebas — mas
+      // só se o valor mudar, então guardamos a gleba antes: o watcher limpa
+      // formData.gleba, e sem isto o campo abriria vazio ao editar.
+      const glebaOriginal = analisesolo.gleba;
       this.propriedadeSelecionada = analisesolo.propriedade || '';
+      this.formData.gleba = glebaOriginal;
+      this.fetchGlebasDaPropriedade();
       this.showForm = true;
       this.editingSolo = true;
     },
@@ -644,9 +752,11 @@ export default {
     },
   },
   mounted() {
+    // Laboratórios e culturas continuam sendo carregados: são as opções dos
+    // selects do formulário. O que saiu foi a busca de TODAS as glebas —
+    // agora elas vêm por propriedade, sob demanda.
     this.fetchLaboratorios();
     this.fetchPropriedades();
-    this.fetchGlebas();
     this.fetchCulturas();
     this.fetchAnaliseSolo();
   }
@@ -660,6 +770,77 @@ export default {
 <style scoped>
 /* Apenas o que é específico desta tela.
    O padrão comum vive em src/estilos/base.css. */
+
+/* ------------------------------------------------------------- filtros */
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background-color: #fff;
+  border: 1px solid var(--cor-borda-suave);
+  border-radius: var(--raio-pequeno);
+}
+
+.filtro {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 160px;
+  min-width: 140px;
+  text-align: left;
+}
+
+.filtro label {
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+  margin-bottom: 3px;
+}
+
+.filtro select,
+.filtro input {
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background-color: #fff;
+  color: var(--cor-texto);
+}
+
+.filtro select:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.filtro-acao {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.filtro-acao .btn-back:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.resumo-filtro {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  text-align: left;
+}
+
+.link-limpar {
+  background: none;
+  border: none;
+  padding: 0 0 0 4px;
+  color: var(--cor-primaria);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
 .table {
   border-radius: 10px;
   overflow: hidden;

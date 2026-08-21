@@ -299,6 +299,12 @@ class AnaliseSoloSerializer(CalcariosDoUsuarioMixin, DonoDoRecursoMixin, seriali
         source='gleba.propriedade.nome', read_only=True
     )
     gleba_nome = serializers.CharField(source='gleba.nome', read_only=True)
+    # Sem estes dois, a listagem precisava buscar as listas inteiras de
+    # laboratorios e culturas so para traduzir o id em nome - e escrevia
+    # "Desconhecido" nas linhas ate essas listas chegarem. Ambos ja estao no
+    # select_related da view, entao nao custam consulta nenhuma.
+    laboratorio_nome = serializers.CharField(source='laboratorio.nome', read_only=True)
+    cultura_nome = serializers.CharField(source='cultura.nome', read_only=True)
     # Indices derivados (SB, CTC, V%, m%, relacoes, classe textural).
     #
     # Calculados a cada leitura em vez de gravados: sao funcao dos valores da
