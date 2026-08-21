@@ -59,6 +59,10 @@ venv\Scripts\Activate.ps1
 ### 2. Dependências
 
 ```bash
+# Desenvolvimento (inclui as de execucao + pytest e pylint):
+pip install -r requirements-dev.txt
+
+# Somente execucao, para o servidor:
 pip install -r requirements.txt
 ```
 
@@ -144,7 +148,8 @@ backend/
 │                           # recomendação, além de laboratório e cultura
 ├── staticfiles/            # saída do collectstatic (gerado, não versionar)
 ├── manage.py
-├── requirements.txt
+├── requirements.txt        dependencias de execucao
+├── requirements-dev.txt    + testes e analise estatica
 └── .env.example
 ```
 

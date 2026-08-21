@@ -130,7 +130,17 @@ AUTH_USER_MODEL = 'autenticacao.Usuario'
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
 LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'UTC'
+
+# 'UTC' aqui, com LANGUAGE_CODE pt-br, fazia o servidor ter uma nocao de "hoje"
+# diferente da do usuario. Nao aparecia porque a maquina de desenvolvimento
+# esta no Brasil e 'date.today()' lia o relogio do sistema; num servidor em UTC
+# as duas divergiriam todas as noites, das 21h a meia-noite - e uma analise
+# datada de hoje seria recusada como futura, ou vice-versa.
+#
+# Com USE_TZ=True os datetimes continuam gravados em UTC no banco. Isto aqui
+# define apenas como sao interpretados e exibidos - e o que 'timezone.localdate()'
+# considera ser hoje.
+TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 # USE_L10N foi removido no Django 5.0 - a linha nao tinha mais efeito nenhum.
 USE_TZ = True

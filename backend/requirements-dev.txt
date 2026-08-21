@@ -1,0 +1,41 @@
+# Dependencias de DESENVOLVIMENTO. Nao vao para o servidor.
+#
+#   pip install -r requirements-dev.txt
+#
+# A linha abaixo puxa junto tudo que a aplicacao precisa para rodar, entao
+# este e o unico arquivo que voce instala numa maquina de desenvolvimento.
+-r requirements.txt
+
+# --- testes ----------------------------------------------------------------
+# O backend ainda nao tem testes: os tests.py das duas apps sao esqueletos de
+# tres linhas. Isto aqui e a ferramenta, nao a suite - mas era o momento
+# natural de acrescenta-la, ja que o arquivo estava sendo separado.
+#
+# Por onde comecar, quando comecar: apps/core/agronomia.py. E puro (recebe
+# numeros, devolve numeros, nao importa Django), entao se verifica sem subir
+# banco, e carrega a parte do sistema que mais precisa de rede de protecao.
+#
+# Depois dele, os casos que ja foram verificados a mao e hoje nada impede de
+# regredir: senha com hash, 'password' fora do GET, is_superuser recusado,
+# IDOR bloqueado nos dois sentidos, unicidade por usuario, exclusao protegida
+# por PROTECT, e a contagem de consultas das listagens (assertNumQueries) -
+# esta ultima porque um select_related removido por engano nao quebra teste
+# nenhum, so deixa a pagina lenta em silencio.
+pytest==9.1.1
+pytest-django==4.14.0
+
+# --- analise estatica ------------------------------------------------------
+# pylint-django ensina o pylint sobre managers, campos e o resto do que o
+# Django cria em tempo de execucao; sem ele o ruido de falso positivo torna a
+# saida inutil. O restante desta secao sao dependencias do proprio pylint,
+# fixadas para o ambiente ser reproduzivel.
+pylint==3.2.4
+pylint-django==2.5.5
+pylint-plugin-utils==0.8.2
+astroid==3.2.2
+isort==5.13.2
+mccabe==0.7.0
+dill==0.3.8
+tomlkit==0.12.5
+platformdirs==4.2.2
+colorama==0.4.6

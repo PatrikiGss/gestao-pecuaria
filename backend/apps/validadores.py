@@ -9,9 +9,9 @@ DRF (que os aplica ao montar o serializer) e no /admin, sem precisar repetir a
 regra em cada lugar.
 """
 import re
-from datetime import date
 
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 
 # Unidades da federacao. Usado como 'choices' nos campos 'estado', que antes
@@ -71,8 +71,16 @@ def validar_telefone(valor):
 
 
 def validar_data_nao_futura(valor):
-    """Uma analise nao pode ter sido feita depois de hoje."""
-    if valor and valor > date.today():
+    """
+    Uma analise nao pode ter sido feita depois de hoje.
+
+    'timezone.localdate()' e nao 'date.today()': o primeiro devolve a data no
+    fuso configurado em TIME_ZONE, o segundo le o relogio do sistema. Enquanto
+    o servidor roda na mesma maquina do usuario os dois coincidem; hospedado em
+    UTC, nao - e "hoje" para o usuario seria "amanha" para o validador durante
+    as ultimas horas do dia, recusando uma data legitima.
+    """
+    if valor and valor > timezone.localdate():
         raise ValidationError('A data não pode estar no futuro.')
 
 

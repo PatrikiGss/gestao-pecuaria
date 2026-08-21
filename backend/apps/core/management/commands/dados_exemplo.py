@@ -13,11 +13,12 @@ acido, medio, bom e ja corrigido - para dar de ver o diagnostico e a calagem
 variando. Uma das glebas tem serie historica de varios anos, que e o caso de
 uso que motivou transformar a gleba em entidade.
 """
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal as D
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 
 from autenticacao.models import Usuario
 from core.agronomia import recomendacao_completa
@@ -213,7 +214,9 @@ class Command(BaseCommand):
                   for i, n in nomes_glebas]
 
         # -------------------------------------------------------------- analises
-        hoje = date.today()
+        # Mesmo criterio do validar_data_nao_futura: a data vem do fuso
+        # configurado, e nao do relogio da maquina.
+        hoje = timezone.localdate()
         # (gleba, cultura, perfil, textura, dias atras, area)
         receita = [
             # Talhao 1: serie historica de 4 anos, solo melhorando com o manejo.

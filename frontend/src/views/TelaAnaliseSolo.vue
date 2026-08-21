@@ -12,9 +12,9 @@
         <form @submit.prevent="submitForm" class="tela-form">
           <!-- Campo para o laboratorio -->
           <div class="mb-3">
-            <label for="laboratorio" class="form-label">laboratorio</label>
+            <label for="laboratorio" class="form-label">Laboratório</label>
             <select id="laboratorio" v-model="formData.laboratorio" class="form-control" required>
-              <option disabled value="">Selecione um laboratorio</option>
+              <option disabled value="">Selecione um laboratório</option>
               <option v-for="laboratorio in laboratorios" :key="laboratorio.id" :value="laboratorio.id">
                 {{ laboratorio.nome }}
               </option>
@@ -49,7 +49,7 @@
           </div>
           <!-- Campo para o cultura -->
           <div class="mb-3">
-            <label for="cultura" class="form-label">cultura</label>
+            <label for="cultura" class="form-label">Cultura</label>
             <select id="cultura" v-model="formData.cultura" class="form-control" required>
               <option disabled value="">Selecione uma cultura</option>
               <option v-for="cultura in culturas" :key="cultura.id" :value="cultura.id">
@@ -79,16 +79,16 @@
           </div>
           <!-- Campo para o area -->
           <div class="mb-3">
-            <label for="area" class="form-label">Area</label>
+            <label for="area" class="form-label">Área (ha)</label>
             <input type="number" step="0.1" id="area" v-model="formData.area" placeholder="Ex: 10.50" required min="0" />
           </div>
           <div class="mb-3">
-            <label for="laudo" class="form-label">laudo</label>
+            <label for="laudo" class="form-label">Laudo</label>
             <input type="text" id="laudo" v-model="formData.laudo" placeholder="Insira o laudo" required />
           </div>
           <!-- Campo para o ph_h2o -->
           <div class="mb-3">
-            <label for="ph_h2o" class="form-label">pH em H2O</label>
+            <label for="ph_h2o" class="form-label">pH em H₂O</label>
             <input type="number" step="0.01" id="ph_h2o" v-model="formData.ph_h2o" placeholder="Ex: 5.5" required min="0" max="14" />
           </div>
           <!-- Campo para o s -->
@@ -132,7 +132,7 @@
           </div>
           <!-- Campo para o h -->
           <div class="mb-3">
-            <label for="h" class="form-label">Hidrogenio (H)</label>
+            <label for="h" class="form-label">Hidrogênio (H)</label>
             <input type="number" step="0.01" id="h" v-model="formData.h" placeholder="Ex: 1.0" required min="0" />
           </div>
           <!-- Campo para o materia organica -->
@@ -397,24 +397,24 @@
   <table class="table">
     <thead>
       <tr>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Ph em H20</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Enxofre (S)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Fosforo (P)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Potássio (K)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">calcio (ca)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Magnesio (mg)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Sodio (na)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Alumínio (al)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Hidrogenio (h)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Materia Organica</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Areia</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Silte</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Argila</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Meganes (mn)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Ferro (fr)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Cobre (cu)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Zinco (zn)</th>
-        <th scope="col-12 col-sm-6 col-md-4 col-lg-2">Boro (b)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">pH em H₂O</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Enxofre (S)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Fósforo (P)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Potássio (K)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Cálcio (Ca)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Magnésio (Mg)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Sódio (Na)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Alumínio (Al)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Hidrogênio (H)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Matéria orgânica</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Areia</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Silte</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Argila</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Manganês (Mn)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Ferro (Fe)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Cobre (Cu)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Zinco (Zn)</th>
+        <th scope="col" class="col-12 col-sm-6 col-md-4 col-lg-2">Boro (B)</th>
       </tr>
     </thead>
     <tbody>
@@ -521,8 +521,18 @@ export default {
   computed: {
     // Trava o seletor de data em hoje: o backend recusa data futura,
     // e assim o usuario nem consegue escolher uma.
+    //
+    // Montado a partir dos componentes LOCAIS da data, e não com
+    // toISOString(), que converte para UTC. No Brasil (UTC-3), das 21h à
+    // meia-noite o toISOString() já devolvia o dia seguinte — então o seletor
+    // liberava amanhã e o servidor recusava na hora de salvar, com o usuário
+    // vendo "A data não pode estar no futuro" para a data que o próprio campo
+    // tinha oferecido.
     hoje() {
-      return new Date().toISOString().split('T')[0];
+      const agora = new Date();
+      const mes = String(agora.getMonth() + 1).padStart(2, '0');
+      const dia = String(agora.getDate()).padStart(2, '0');
+      return `${agora.getFullYear()}-${mes}-${dia}`;
     },
     temFiltro() {
       return Object.values(this.filtros).some(v => v !== '');

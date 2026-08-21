@@ -1,21 +1,28 @@
-asgiref==3.8.1
-astroid==3.2.2
-colorama==0.4.6
-dill==0.3.8
+# Dependencias de EXECUCAO. E so isto que precisa ir para o servidor.
+#
+# As ferramentas de desenvolvimento (pylint e o que ele arrasta) sairam daqui
+# para requirements-dev.txt. Estavam misturadas, entao um deploy instalava
+# analisador estatico junto com o servidor - peso e superficie a toa, e sem
+# nenhum jeito de saber, olhando o arquivo, o que era mesmo necessario.
+#
+#   pip install -r requirements.txt              producao
+#   pip install -r requirements-dev.txt          desenvolvimento (inclui esta)
+
+# --- diretas ---------------------------------------------------------------
+Django==5.0.6
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
 django-cors-headers==4.4.0
 django-filter==24.3
-Django==5.0.6
-djangorestframework-simplejwt==5.3.1
-djangorestframework==3.15.2
-isort==5.13.2
-mccabe==0.7.0
-platformdirs==4.2.2
 psycopg2-binary==2.9.9
-PyJWT==2.9.0
-pylint-django==2.5.5
-pylint-plugin-utils==0.8.2
-pylint==3.2.4
 python-decouple==3.8
+
+# --- transitivas, fixadas para o build ser reproduzivel ---------------------
+# asgiref e sqlparse vem do Django; PyJWT vem do simplejwt.
+asgiref==3.8.1
 sqlparse==0.5.0
-tomlkit==0.12.5
+PyJWT==2.9.0
+
+# Base de fusos horarios. NAO e opcional no Windows, que nao traz uma do
+# sistema - e sem ela o TIME_ZONE='America/Sao_Paulo' do settings.py falha.
 tzdata==2024.1
