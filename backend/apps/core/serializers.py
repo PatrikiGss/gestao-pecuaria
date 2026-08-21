@@ -11,18 +11,84 @@ from .agronomia import (
 )
 
 
+from .models import Usuario, Produtor, Propriedade, Laboratorio, Cultura, Calcario, Gleba, AnaliseSolo, Recomendacao
+
+
 def calcario_para(analise):
     """
     Escolhe, entre os calcarios cadastrados pelo dono da analise, o do tipo
     indicado pela relacao Ca:Mg - preferindo o de maior PRNT, que exige menos
     produto para o mesmo efeito.
+
+    Versao autonoma, para quem chama sem serializer - hoje so o comando
+    'dados_exemplo'. Custa consultas por chamada; dentro da API o caminho e o
+    CalcariosDoUsuarioMixin abaixo, que resolve tudo numa consulta so.
     """
     if not analise.gleba_id:
         return None
     dono = analise.gleba.propriedade.produtor.usuario_id
     tipo = tipo_calcario_indicado(analise.ca, analise.mg)
     return Calcario.objects.filter(usuario_id=dono, tipo=tipo).order_by('-prnt').first()
-from .models import Usuario, Produtor, Propriedade, Laboratorio, Cultura, Calcario, Gleba, AnaliseSolo, Recomendacao
+
+
+def _melhor_calcario_por_tipo(usuario_id):
+    """
+    {tipo: calcario de maior PRNT} para um usuario, numa unica consulta.
+
+    O 'setdefault' depende do order_by: dentro de cada tipo os registros vem do
+    maior PRNT para o menor, entao o primeiro que aparece e o que fica.
+    """
+    melhores = {}
+    for calcario in Calcario.objects.filter(usuario_id=usuario_id).order_by('tipo', '-prnt'):
+        melhores.setdefault(calcario.tipo, calcario)
+    return melhores
+
+
+class CalcariosDoUsuarioMixin:
+    """
+    Resolve o calcario indicado sem ir ao banco uma vez por linha.
+
+    O PROBLEMA QUE ISTO CORRIGE
+
+    'calcario_para' fazia uma consulta por chamada, e a listagem de analises a
+    chamava DUAS vezes por linha (em 'calagem' e em 'recomendacao_previa').
+    Somando o acesso a 'produtor', que ficava de fora do select_related, uma
+    pagina de 20 analises custava 62 consultas - cerca de 3 por linha.
+
+    A ironia e que a paginacao foi introduzida justamente para o custo nao
+    crescer com o historico, mas o custo POR PAGINA continuava proporcional ao
+    numero de linhas.
+
+    Agora os calcarios do usuario sao carregados uma vez e ficam num dicionario
+    por tipo. O DRF usa uma unica instancia de serializer para todos os itens de
+    uma lista, entao o cache vale para a requisicao inteira. O trabalho por
+    linha continua O(n) - mas em CPU, que e barata, e nao em ida e volta ao
+    banco, que nao e.
+
+    Usa 'request.user' em vez de derivar o dono de cada analise. E equivalente:
+    todos os get_queryset filtram pelo usuario da requisicao, e o
+    DonoDoRecursoMixin impede vincular analise de terceiro. A diferenca e que
+    assim nao se atravessa gleba -> propriedade -> produtor so para descobrir
+    algo que a requisicao ja sabia.
+    """
+
+    def calcario_para(self, analise):
+        por_tipo = self._calcarios_do_usuario()
+        if por_tipo is None:
+            # Sem requisicao no contexto (teste, shell): mantem o caminho antigo.
+            return calcario_para(analise)
+        return por_tipo.get(tipo_calcario_indicado(analise.ca, analise.mg))
+
+    def _calcarios_do_usuario(self):
+        if not hasattr(self, '_cache_calcarios'):
+            request = self.context.get('request')
+            usuario = getattr(request, 'user', None)
+            self._cache_calcarios = (
+                _melhor_calcario_por_tipo(usuario.pk)
+                if usuario is not None and usuario.is_authenticated
+                else None
+            )
+        return self._cache_calcarios
 
 
 class DonoDoRecursoMixin:
@@ -218,7 +284,7 @@ class GlebaSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
         return attrs
 
 
-class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
+class AnaliseSoloSerializer(CalcariosDoUsuarioMixin, DonoDoRecursoMixin, serializers.ModelSerializer):
     querysets_por_dono = {
         'laboratorio': lambda user: Laboratorio.objects.filter(usuario=user),
         'gleba': lambda user: Gleba.objects.filter(propriedade__produtor__usuario=user),
@@ -261,7 +327,7 @@ class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
             return {'aplicavel': False,
                     'motivo': f'Análise da camada {obj.camada} cm; '
                               'a recomendação é calculada sobre 0-20 cm.'}
-        dados = recomendacao_completa(obj, calcario=calcario_para(obj))
+        dados = recomendacao_completa(obj, calcario=self.calcario_para(obj))
         dados['aplicavel'] = True
         return dados
 
@@ -270,7 +336,7 @@ class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
 
         # O PRNT vem do calcario indicado pela relacao Ca:Mg, entre os que o
         # usuario cadastrou. Sem cadastro, sai so a necessidade teorica.
-        calcario = calcario_para(obj)
+        calcario = self.calcario_para(obj)
         prnt = calcario.prnt if calcario else None
 
         resultado = calcular_calagem(obj, v2=v2, prnt=prnt)
@@ -306,7 +372,7 @@ class AnaliseSoloSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
         return attrs
 
 
-class RecomendacaoSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
+class RecomendacaoSerializer(CalcariosDoUsuarioMixin, DonoDoRecursoMixin, serializers.ModelSerializer):
     """
     Recomendacao gerada pelo sistema.
 
@@ -344,7 +410,7 @@ class RecomendacaoSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
         if not obj.analise_solo_id:
             return None
         analise = obj.analise_solo
-        dados = recomendacao_completa(analise, calcario=calcario_para(analise))
+        dados = recomendacao_completa(analise, calcario=self.calcario_para(analise))
         return {
             'metodo_calagem': dados['metodo_calagem'],
             'tipo_calcario': dados['tipo_calcario'],
@@ -358,7 +424,7 @@ class RecomendacaoSerializer(DonoDoRecursoMixin, serializers.ModelSerializer):
     def _preencher(self, validated_data):
         """Substitui o que veio do cliente pelo resultado do calculo."""
         analise = validated_data['analise_solo']
-        calculado = recomendacao_completa(analise, calcario=calcario_para(analise))
+        calculado = recomendacao_completa(analise, calcario=self.calcario_para(analise))
         for campo in self.Meta.read_only_fields:
             valor = calculado.get(campo)
             # Campo sem parametro cadastrado fica zerado, e a pendencia

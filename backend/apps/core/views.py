@@ -158,6 +158,12 @@ class RecomendacaoViewSet(viewsets.ModelViewSet):
     ordering = ['-id']
 
     def get_queryset(self):
+        # 'analise_solo__cultura' faltava, e a memoria de calculo le
+        # 'analise.cultura' em toda linha - uma consulta extra por recomendacao
+        # listada. Os demais caminhos alimentam os campos de leitura da tela
+        # (laudo, data, nome da gleba).
         return Recomendacao.objects.filter(
             analise_solo__gleba__propriedade__produtor__usuario=self.request.user
-        ).select_related('analise_solo__gleba__propriedade').order_by('-id')
+        ).select_related(
+            'analise_solo__gleba__propriedade', 'analise_solo__cultura'
+        ).order_by('-id')
