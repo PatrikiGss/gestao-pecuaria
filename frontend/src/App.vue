@@ -64,8 +64,9 @@
 import api from '@/interceptadorAxios';
 import AvisosFlutuantes from '@/components/AvisosFlutuantes.vue';
 import ConfirmacaoDialogo from '@/components/ConfirmacaoDialogo.vue';
-import { confirmar, erro } from '@/notificacoes';
+import { aviso, confirmar, erro } from '@/notificacoes';
 import { sessao, getRefreshToken, limparSessao } from '@/sessao';
+import { iniciarVigilancia, pararVigilancia, limparAtividade } from '@/inatividade';
 
 export default {
   name: 'App',
@@ -109,18 +110,33 @@ export default {
         this.currentName = to.meta.titulo || '';
       },
     },
+    // A vigilância de inatividade só faz sentido com sessão aberta, e precisa
+    // parar quando ela fecha — senão o temporizador continuaria rodando na
+    // tela de login, sem nada para encerrar.
+    isAuthenticated: {
+      immediate: true,
+      handler(autenticado) {
+        if (autenticado) {
+          iniciarVigilancia(() => this.encerrarPorInatividade());
+        } else {
+          pararVigilancia();
+        }
+      },
+    },
   },
   mounted() {
     // O interceptadorAxios avisa por evento quando a sessão cai (refresh
     // recusado). Ele não importa o router para não recriar a dependência
     // circular, então a navegação acontece aqui.
     this._aoEncerrarSessao = () => {
+      pararVigilancia();
       if (this.$route.name !== 'home') this.$router.push('/');
     };
     window.addEventListener('sessao-encerrada', this._aoEncerrarSessao);
   },
   beforeUnmount() {
     window.removeEventListener('sessao-encerrada', this._aoEncerrarSessao);
+    pararVigilancia();
   },
   methods: {
     async confirmLogout() {
@@ -128,7 +144,15 @@ export default {
         this.logoutUsuario();
       }
     },
-    async logoutUsuario() {
+    // Encerrada pelo relógio de inatividade (src/inatividade.js), não por
+    // clique. Faz o mesmo caminho do logout manual — inclusive a blacklist no
+    // servidor — mas explica o motivo, senão o usuário volta do café e encontra
+    // a tela de login sem entender o que aconteceu.
+    async encerrarPorInatividade() {
+      await this.logoutUsuario({ silencioso: true });
+      aviso('Sessão encerrada por 1 hora de inatividade. Entre novamente.');
+    },
+    async logoutUsuario({ silencioso = false } = {}) {
       // O logout apenas apagava o access_token do localStorage: o
       // refresh_token continuava salvo e valido por 1 dia, e o endpoint de
       // blacklist do backend nunca era chamado. Agora o token e invalidado
@@ -141,11 +165,20 @@ export default {
           // Token ja expirado ou API fora do ar: a sessao local e limpa
           // de qualquer forma, para o logout nunca falhar para o usuário.
           console.warn('Não foi possível invalidar o token no servidor:', falha);
-          erro('A sessão foi encerrada aqui, mas o servidor não confirmou.');
+          // No logout por inatividade o token já venceu na maioria das vezes,
+          // então esse aviso seria ruído sobre algo esperado.
+          if (!silencioso) {
+            erro('A sessão foi encerrada aqui, mas o servidor não confirmou.');
+          }
         }
       }
+      pararVigilancia();
+      limparAtividade();
       limparSessao();
-      this.$router.push('/');
+      // O default do axios guarda o token da última renovação; sem apagar,
+      // as próximas requisições sairiam autenticadas depois do logout.
+      delete api.defaults.headers.common['Authorization'];
+      if (this.$route.name !== 'home') this.$router.push('/');
     },
     changepassword(){
       this.$router.push('/tela-edicao');
