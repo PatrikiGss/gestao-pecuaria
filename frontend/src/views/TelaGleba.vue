@@ -68,6 +68,7 @@ import api from '@/interceptadorAxios';
 import { confirmar, erro, sucesso } from '@/notificacoes';
 import PaginacaoLista from '@/components/PaginacaoLista.vue';
 import listaPaginada from '@/mixins/listaPaginada';
+import { mensagemDeErro } from '@/erros';
 import { extrairLista, PARAMS_LISTA_COMPLETA } from '@/lista';
 
 export default {
@@ -148,12 +149,12 @@ export default {
         sucesso('Gleba excluída com sucesso!');
         this.fetchGlebas();
       } catch (error) {
-        // O backend usa PROTECT: uma gleba com análises não pode ser apagada,
-        // para não levar junto o histórico daquele pedaço de terra.
-        if (error.response && error.response.status >= 400) {
-          erro('Não foi possível excluir: esta gleba possui análises de solo vinculadas.');
-        }
+        // O backend usa PROTECT e devolve 409 com a contagem do que está
+        // vinculado. Antes, esta tela dizia "possui análises de solo
+        // vinculadas" para QUALQUER status >= 400 — então uma sessão expirada
+        // (401) aparecia como se fosse vínculo de dados.
         console.error('Erro ao excluir gleba:', error);
+        erro(mensagemDeErro(error));
       }
     },
   },

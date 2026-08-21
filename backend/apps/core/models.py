@@ -289,12 +289,25 @@ class Gleba(models.Model):
 
 
 class AnaliseSolo(models.Model):
-    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.CASCADE)
+    # As tres chaves abaixo usam PROTECT pelo mesmo motivo: a analise de solo e
+    # o registro historico do sistema, e nenhuma exclusao de cadastro auxiliar
+    # deve leva-la junto.
+    #
+    # 'laboratorio' e 'cultura' eram CASCADE, e isso deixava a protecao pela
+    # metade de um jeito que enganava: a tela recusava apagar a gleba "Talhao 3"
+    # explicando que havia analises vinculadas, mas apagar o laboratorio que
+    # fez essas mesmas analises destruia todas elas em silencio, com a tela
+    # confirmando sucesso. O caminho bloqueado e o caminho aberto levavam
+    # exatamente as mesmas linhas.
+    #
+    # Com PROTECT o banco recusa, e config/excecoes.py traduz a recusa em
+    # HTTP 409 com uma mensagem que diz quantos registros estao no caminho.
+    laboratorio = models.ForeignKey(Laboratorio, on_delete=models.PROTECT)
     # A propriedade nao e mais guardada aqui: vem pela gleba. Manter as duas
     # permitia que se contradissessem (analise numa gleba da Fazenda A com
     # propriedade apontando para a Fazenda B).
     gleba = models.ForeignKey(Gleba, on_delete=models.PROTECT, related_name='analises')
-    cultura = models.ForeignKey(Cultura, on_delete=models.CASCADE)
+    cultura = models.ForeignKey(Cultura, on_delete=models.PROTECT)
     data = models.DateField(validators=[validar_data_nao_futura])
 
     # Camada de solo amostrada.

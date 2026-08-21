@@ -173,8 +173,22 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 #DRF Configuration
 REST_FRAMEWORK = {
+    # Fechado por padrao. O default era AllowAny, e embora nao houvesse brecha
+    # aberta - os nove viewsets declaram IsAuthenticated um por um - a protecao
+    # dependia de ninguem esquecer. E a mesma classe de falha do 'validate_campos'
+    # que nunca rodava: parecia protegido, e estava, mas por acidente de
+    # disciplina e nao por construcao. Com o default invertido, o proximo
+    # endpoint que alguem escrever nasce fechado, e abrir passa a ser uma
+    # decisao explicita e visivel na revisao.
+    #
+    # O QUE FICA PUBLICO, E ONDE ISSO ESTA DECLARADO
+    #   /autenticacao/signup/          RegisterView, permission_classes=[AllowAny]
+    #   /autenticacao/token/           \
+    #   /autenticacao/token/refresh/    > TokenViewBase do simplejwt, que declara
+    #   /autenticacao/logout/          /  permission_classes = () - tupla vazia,
+    #                                     entao nao consulta este default.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # AllowAny  IsAuthenticated
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -186,10 +200,26 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.OrderingFilter',
     ],
+    # Traduz o ProtectedError do on_delete=PROTECT em 409 com explicacao, em
+    # vez do 500 sem mensagem que o DRF devolveria. Ver config/excecoes.py.
+    'EXCEPTION_HANDLER': 'config.excecoes.manipulador_de_excecoes',
 }
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # O tempo de vida do token de acesso
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # O tempo de vida do token de refresh
+    # Rede de seguranca do servidor para a inatividade.
+    #
+    # A regra de "sair depois de 1h parado" e aplicada no navegador
+    # (src/inatividade.js), porque so o cliente sabe se houve interacao. Mas
+    # regra que so existe no cliente nao vale nada contra um token copiado:
+    # bastava guardar o refresh e usa-lo no dia seguinte, ja que a vida dele
+    # era de 1 DIA. Agora o servidor tambem recusa.
+    #
+    # 2h, e nao 1h, de proposito: com ROTATE_REFRESH_TOKENS cada chamada a API
+    # renova a contagem, entao a janela so se esgota sem uso. A folga cobre o
+    # caso de alguem ativo por muito tempo numa tela sem chamar a API (um
+    # formulario longo de analise, por exemplo) - com 1h exato, esse usuario
+    # seria deslogado ao salvar, apesar de nunca ter ficado parado.
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=2),
     'ROTATE_REFRESH_TOKENS': True,  # Gira os tokens de refresh automaticamente
     'BLACKLIST_AFTER_ROTATION': True,  # Coloca o token antigo na lista negra
     'ALGORITHM': 'HS256',  # Algoritmo de criptografia
