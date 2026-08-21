@@ -1,0 +1,24 @@
+Fecha a rodada de correcoes da auditoria
+
+Sete frentes, da troca dos caminhos das fotos ate o icone. O fio comum e
+que quase tudo aqui ja funcionava: o que estava errado nao era o codigo
+travar, era o que ele fazia quando ninguem olhava.
+
+- Fotos de fundo em src/assets com caminho relativo. Caminho absoluto de
+  disco funciona no desenvolvimento e nao sobrevive ao build.
+- PROTECT em laboratorio e cultura, com 409 explicativo. Apagar o
+  laboratorio destruia em silencio as mesmas analises que a gleba protegia.
+- Default do DRF passa a IsAuthenticated: endpoint novo nasce fechado.
+- A sessao passa a expirar. O refresh valia 1 dia e caiu para 2h, mais
+  logout por 1h de inatividade no cliente. Junto, tres defeitos do
+  interceptador, incluindo o token que seguia sendo enviado apos o logout.
+- N+1 eliminado: 62 consultas por pagina viraram 3, constante.
+- Os filtros da API ganham interface, e as duas telas principais foram
+  limpas de codigo morto e erros de digitacao.
+- TIME_ZONE, validador e seletor de data passam a concordar sobre que dia
+  e hoje. Eram tres respostas diferentes, duas ja divergindo.
+- requirements dividido entre execucao e desenvolvimento, store vazia do
+  Vuex removida, semantica dos cabecalhos de tabela devolvida.
+- Suite de testes: 217, onde antes havia dois esqueletos de tres linhas.
+  Provada contra mutacao: seis defeitos reintroduzidos, seis pegos.
+- Nome, cores e icone do Projeto AORUS.

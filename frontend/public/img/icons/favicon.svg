@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="quadro">
+      <rect width="512" height="512" rx="113"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#quadro)">
+    <rect width="512" height="512" fill="#14401f"/>
+    <rect y="379" width="512" height="133" fill="#5e472f"/>
+    <rect x="235" y="154" width="43" height="246" rx="21" fill="#8cd6a0"/>
+    <ellipse cx="160" cy="184" rx="102" ry="54" fill="#8cd6a0"
+             transform="rotate(-38 160 184)"/>
+    <ellipse cx="352" cy="184" rx="102" ry="54" fill="#8cd6a0"
+             transform="rotate(38 352 184)"/>
+  </g>
+</svg>
