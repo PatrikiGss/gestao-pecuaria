@@ -12,8 +12,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 import sys
 from pathlib import Path
+import dj_database_url
 from decouple import config, Csv
-from datetime import timedelta  
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,6 +59,16 @@ INSTALLED_APPS = PROJECT_APPS + THIRD_APPS + DJANGO_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serve os estaticos do /admin com DEBUG=False, direto do processo do
+    # gunicorn. A posicao nao e preferencia:
+    #   - acima do SecurityMiddleware, os estaticos escapariam do
+    #     redirecionamento de HTTPS;
+    #   - mais abaixo, cada arquivo pagaria o custo dos middlewares de sessao
+    #     e autenticacao a toa.
+    # Logo depois do SecurityMiddleware e antes de todo o resto e a ordem que
+    # a documentacao do whitenoise pede, e a causa mais comum de "instalei e
+    # continua sem CSS" e justamente ter posto em outro lugar.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     # CorsMiddleware precisa vir antes do CommonMiddleware: se ficar depois,
     # respostas que o CommonMiddleware encerra saem sem os cabecalhos de CORS.
     'corsheaders.middleware.CorsMiddleware',
@@ -93,16 +104,49 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',#postgresql  sqlite3
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+# Duas formas de configurar, e a de producao ganha quando existe.
+#
+# O provedor gerenciado entrega UMA url:
+#   postgresql://usuario:senha@host-pooler.regiao.provedor.tech/banco?sslmode=require
+#
+# Em desenvolvimento continuam valendo as cinco variaveis separadas do .env.
+# Manter os dois caminhos, em vez de migrar tudo para a url, e o que deixa a
+# maquina local e a suite de testes intocadas: nada muda aqui enquanto
+# DATABASE_URL nao estiver definida.
+DATABASE_URL = config('DATABASE_URL', default='')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            # 0 de proposito. O endpoint '-pooler' do provedor JA e um
+            # PgBouncer; conexao persistente do Django por cima de um pooler
+            # externo segura uma conexao do pool sem usar, em vez de economizar
+            # handshake. Com pooler, persistir e o contrario de otimizar.
+            conn_max_age=0,
+            # O provedor recusa conexao sem TLS. Isto acrescenta
+            # OPTIONS={'sslmode': 'require'} mesmo que a url venha sem o
+            # parametro na query string.
+            ssl_require=True,
+            # PgBouncer em modo transacao nao mantem estado entre comandos, e
+            # cursor do lado do servidor (o que o .iterator() do Django usa)
+            # depende exatamente disso. Nenhuma consulta do projeto usa hoje -
+            # mas a falha e do tipo que aparece meses depois, em producao, na
+            # primeira listagem grande.
+            disable_server_side_cursors=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',#postgresql  sqlite3
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT'),
+        }
+    }
 
 
 # Password validation
@@ -157,6 +201,21 @@ STATIC_URL = '/static/'
 # Popper que nada referenciava - o front carrega os proprios via npm.
 # Os assets do /admin vem do proprio app do Django.
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        # Comprime (gzip/brotli) e poe um hash no nome de cada arquivo, o que
+        # permite cache eterno sem risco de servir versao velha.
+        #
+        # EXIGE que 'collectstatic' tenha rodado: sem o manifesto, qualquer
+        # {% static %} levanta ValueError. Por isso o collectstatic e parte do
+        # comando de build no servidor, e nao um passo manual.
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -242,3 +301,37 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=60),  # Para tokens deslizantes, caso use
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
+
+# HTTPS
+#
+# Tudo neste bloco vale SO com DEBUG=False. Ligado em desenvolvimento, quebra o
+# localhost: o SECURE_SSL_REDIRECT manda o navegador para
+# https://localhost:8000, que nao existe. E por isso que ele esta dentro de um
+# 'if' em vez de solto no arquivo.
+#
+# Sao os quatro avisos que 'manage.py check --deploy' aponta, mais a linha do
+# proxy - que nao e aviso, e pre-requisito das outras.
+if not DEBUG:
+    # A plataforma encerra o TLS no proxy e entrega a requisicao em HTTP para a
+    # aplicacao. Sem esta linha o Django acha que TODA conexao e insegura - e o
+    # SECURE_SSL_REDIRECT logo abaixo vira um LACO INFINITO: o Django manda
+    # para https, o proxy repassa em http, o Django manda para https de novo.
+    # E o erro que mais confunde neste deploy, porque o sintoma
+    # (ERR_TOO_MANY_REDIRECTS) nao aponta para a causa.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    SECURE_SSL_REDIRECT = True      # security.W008
+    SESSION_COOKIE_SECURE = True    # security.W012
+    CSRF_COOKIE_SECURE = True       # security.W016
+
+    # security.W004. Comeca em 1h de proposito.
+    #
+    # O HSTS fica GRAVADO no navegador pelo tempo que voce disser, e nao ha
+    # como cancelar do lado do servidor. Publicar 31536000 (1 ano) por engano
+    # num dominio que depois precise responder em HTTP deixa o site
+    # inacessivel por um ano nos navegadores que ja visitaram. Suba para
+    # 31536000 pela variavel de ambiente depois de uma semana no ar sem
+    # problema - nao precisa mexer neste arquivo para isso.
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=3600, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

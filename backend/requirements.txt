@@ -17,11 +17,31 @@ django-filter==24.3
 psycopg2-binary==2.9.9
 python-decouple==3.8
 
+# --- infraestrutura de producao --------------------------------------------
+# Servidor de aplicacao. O 'runserver' do Django e de desenvolvimento e nao
+# deve receber trafego real. INSTALA no Windows mas nao RODA (depende de
+# fcntl): local continua valendo o runserver, o gunicorn so executa no
+# servidor, que e Linux.
+gunicorn==22.0.0
+
+# Serve os arquivos estaticos do /admin. Com DEBUG=False o Django para de
+# servir estatico por design, e nao ha servidor de arquivos separado no plano
+# gratuito - sem isto o /admin carrega sem CSS nenhum. Ver o middleware e o
+# STORAGES no settings.py.
+whitenoise==6.7.0
+
+# Le a url unica do banco (DATABASE_URL). O provedor entrega uma string so, e
+# nao as cinco variaveis separadas que o DATABASES montava.
+dj-database-url==2.2.0
+
 # --- transitivas, fixadas para o build ser reproduzivel ---------------------
-# asgiref e sqlparse vem do Django; PyJWT vem do simplejwt.
+# asgiref e sqlparse vem do Django; PyJWT vem do simplejwt;
+# packaging vem do gunicorn; typing-extensions vem do dj-database-url.
 asgiref==3.8.1
 sqlparse==0.5.0
 PyJWT==2.9.0
+packaging==24.1
+typing-extensions==4.12.2
 
 # Base de fusos horarios. NAO e opcional no Windows, que nao traz uma do
 # sistema - e sem ela o TIME_ZONE='America/Sao_Paulo' do settings.py falha.
