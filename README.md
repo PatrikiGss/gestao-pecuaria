@@ -12,7 +12,6 @@ emite laudo com responsabilidade técnica.
 ## Ver funcionando
 
 - Sistema: https://projeto-gestao-pecuaria-app.onrender.com
-- API: https://projeto-gestao-pecuaria.onrender.com
 
 Basta criar uma conta em "cadastre-se". Cada conta enxerga apenas os próprios
 dados.
